@@ -1,4 +1,5 @@
-let CHART_INITIALIZED = false;
+// chart.js should be loaded first
+let CHART_INITIALIZED = {};
 
 const chart_transform = function(xyA, xyB, chart, typ) {
   if (!(xyA && xyB)) return;
@@ -12,6 +13,10 @@ const chart_transform = function(xyA, xyB, chart, typ) {
     var bottom = (jj=='y') ? chart_area.bottom : chart_area.right;
     for (var ii = 0; ii < chart.options.scales[xy[jj]].length; ii++) {
       var ax = chart.options.scales[xy[jj]][ii];
+      if (ax.type != 'linear') {
+        console.log('Axis is not of type linear');
+        continue;
+      }
       var id = ax.id;
       if (!ax.ticks.hasOwnProperty('min')) {
         ax.ticks.min = chart.scales[id].min;
@@ -39,9 +44,8 @@ const chart_transform = function(xyA, xyB, chart, typ) {
       }
     }
   }
-  //console.log(chart.options.scales.xAxes[0].ticks.min,
-  // chart.options.scales.xAxes[0].ticks.max)
   chart.update(0);
+  
 }
 
 const init = function(data, id, parentNode) {
@@ -53,7 +57,7 @@ const init = function(data, id, parentNode) {
   let canvas_element = document.createElement('canvas');
   canvas_element.id = id;
   canvas = parentNode.appendChild(canvas_element);  
-  canvas.setAttribute('data-drag','true');
+  canvas.setAttribute('data-drag','false');
   let chart = null;
   chart = new Chart(canvas, data);
   let chart_start_click = null;
@@ -120,17 +124,13 @@ const try_init = function(data, id, parentNode, resolve, reject) {
 export function set_up_chart(data, id, parentNode) {
 
   return new Promise((resolve, reject) => {
-    if (!CHART_INITIALIZED) {
-      var script = document.createElement('script');
-      script.src = "https://www.chartjs.org/dist/2.7.3/Chart.bundle.js";
-      script.onload = function() {
-        CHART_INITIALIZED = true;
-        setTimeout(() => try_init(data, id, parentNode, resolve, reject),1000); // Get errors otherwise :(
-      }
-      document.head.appendChild(script); //or something of the likes
+    if (!CHART_INITIALIZED.hasOwnProperty(id)) {
+      CHART_INITIALIZED[id] = true;
+      setTimeout(() => try_init(data, id, parentNode, resolve, reject),1000); // Get errors otherwise :(
     } else {
       try_init(data, id, parentNode, resolve, reject);
     }  
   });
 
-}
+}      
+
