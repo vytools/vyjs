@@ -121,7 +121,7 @@ const try_init = function(data, id, parentNode, resolve, reject) {
   }
 }
 
-export function set_up_chart(data, id, parentNode) {
+export function dynamic_chart(data, id, parentNode) {
 
   return new Promise((resolve, reject) => {
     if (!CHART_INITIALIZED.hasOwnProperty(id)) {
