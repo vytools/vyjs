@@ -1,4 +1,6 @@
-// chart.js should be loaded first
+// chart.js should be loaded first e.g. this has been tested:
+// import 'https://cdnjs.cloudflare.com/ajax/libs/Chart.js/2.7.2/Chart.bundle.min.js'
+
 let CHART_INITIALIZED = {};
 
 const chart_transform = function(xyA, xyB, chart, typ) {
