@@ -42,12 +42,25 @@ function manageResize(md, sizeProp, posProp) {
 		next.style.flexGrow = nextGrowNew;
 
 		lastPos = pos;
+
+		mm.target.parentNode.querySelectorAll('[onresize]').forEach(item => {
+			item.onresize(mm);
+		});
 	}
+
+	md.target.parentNode.querySelectorAll('[onresize]').forEach(item => {
+		item.onresize(md);
+	});
 
 	function onMouseUp(mu) {
 		// Change cursor to signal a state's change: stop resizing.
 		const html = document.querySelector('html');
 		html.style.cursor = 'default';
+		
+		// NEB MODIFICATION
+		mu.target.parentNode.querySelectorAll('[onresize]').forEach(item => {
+			item.onresize(mu);
+		});
 
 		if (posProp === 'pageX') {
 			r.style.cursor = 'ew-resize'; 
@@ -72,9 +85,6 @@ document.body.addEventListener("mousedown", function (md) {
 		return;
 	}
 
-	// NEB MODIFICATION
-	document.querySelectorAll('.hideonresize').forEach(item => {item.style.display = 'none'});
-
 	var parent = target.parentNode;
 	var h = parent.classList.contains("h");
 	var v = parent.classList.contains("v");
@@ -95,9 +105,4 @@ document.body.addEventListener("mousedown", function (md) {
 
 		manageResize(md, "offsetHeight", "pageY");
 	}
-});
-
-// NEB MODIFICATION
-document.body.addEventListener("mouseup", function(md) {
-	document.querySelectorAll('.hideonresize').forEach(item => {item.style.display = 'inherit'});
 });
