@@ -1,5 +1,4 @@
-// import { initialize_map } from "https://cdn.jsdelivr.net/gh/natebu/jsutilities@v0.1.0/zoom_pan_canvas.js";
-import { initialize_map } from "/jsutilities/zoom_pan_canvas.js";
+import { initialize_map } from "https://cdn.jsdelivr.net/gh/natebu/jsutilities@v0.1.2/zoom_pan_canvas.js";
 
 // allowable objects:
 // polygons => {draw_type:'polygon',points:[{x:0,y:0},{x:200,y:0},{x:200,y:200}],fillStyle:'red',strokeStyle:'rgba(0,0,0,0.5)'}
