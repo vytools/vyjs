@@ -80,7 +80,7 @@ const trackTransforms = function(ctx) {
 export function initialize_map(CANVAS) {
   let CTX = CANVAS.getContext('2d');
   
-  CTX.SCREEN = {lastX:0, lastY:0, dragged:false, dragStart:null, lastMapPoint:{x:0, y:0} };
+  CTX.SCREEN = {lastX:0, lastY:0, dragged:false, dragStart:null, mouseLoc:'', lastMapPoint:{x:0, y:0} };
 
   trackTransforms(CTX);
 
@@ -103,6 +103,23 @@ export function initialize_map(CANVAS) {
     return {x:x*t.a+t.e,y:y*t.d+t.f};
   }
 
+  const setFont = function(ctx) {
+    ctx.font = "12px Arial";
+    ctx.fillStyle = 'gray';
+    ctx.strokeStyle = 'lightgray';
+  }
+
+  CTX.draw_mouse = function() {
+    this.save();
+    this.setTransform(1, 0, 0, 1, 0, 0);
+    let w = this.canvas.width, h = this.canvas.height;
+    this.clearRect(0, h-20, w, 20);
+    setFont(this);
+    this.textAlign = 'right';
+    this.fillText(this.SCREEN.mouseLoc,w-10,h-10);
+    this.restore();
+  }
+
   CTX.draw_grid = function() {
     let w = this.canvas.width, h = this.canvas.height;
     let a = this.transformedPoint(0,h); // bottom left
@@ -122,11 +139,8 @@ export function initialize_map(CANVAS) {
     let ny = parseInt((b.y-a.y)/delta*sgny)+2;
     this.save();
     this.setTransform(1, 0, 0, 1, 0, 0);
-
     this.lineWidth = 1;
-    this.font = "12px Arial";
-    this.fillStyle = 'gray';
-    this.strokeStyle = 'lightgray';
+    setFont(this);
     for (var ii = 0; ii < ny; ii++) {
       let y  = y0 + ii*sgny*delta;
       let xy_ = p_to_screen(0,y,t);
@@ -172,6 +186,7 @@ export function initialize_map(CANVAS) {
 
   CTX.handleMouseMove = function(evt) {
     xyfromevent(evt, this);
+    this.SCREEN.mouseLoc = `x = ${this.SCREEN.lastMapPoint.x.toPrecision(3)} y =${this.SCREEN.lastMapPoint.y.toPrecision(3)}`;
     this.SCREEN.dragged = true;
     if (this.SCREEN.dragStart){
       let pt = this.transformedPoint(this.SCREEN.lastX, this.SCREEN.lastY);

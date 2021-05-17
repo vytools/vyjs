@@ -1,4 +1,4 @@
-import { initialize_map } from "https://cdn.jsdelivr.net/gh/natebu/jsutilities@v0.1.2/zoom_pan_canvas.js";
+import { initialize_map } from "https://cdn.jsdelivr.net/gh/natebu/jsutilities@v0.1.3/zoom_pan_canvas.js";
 
 // allowable objects:
 // polygons => {draw_type:'polygon',points:[{x:0,y:0},{x:200,y:0},{x:200,y:200}],fillStyle:'red',strokeStyle:'rgba(0,0,0,0.5)'}
@@ -53,15 +53,22 @@ let draw = function(ctx, data) {
   ctx.clear_all();
   ctx.scale(1,-1);
   ctx.draw_grid();
+  ctx.draw_mouse();
   draw_thing(data, ctx);
   ctx.restore();
+}
+
+let eventtoposition = function(evt, ctx) {
+  let x = evt.offsetX || (evt.pageX - ctx.canvas.offsetLeft);
+  let y = evt.offsetY || (evt.pageY - ctx.canvas.offsetTop);
+  let P = ctx.transformedPoint(x, y);
+  return {x:P.x, y:-P.y}; // Because in draw there is a scale of -1 in y
 }
 
 export function setup_generic_map(contentdiv, DATA) {
   let CANVAS = document.createElement('canvas');
   let CTX = null;
   contentdiv.appendChild(CANVAS);
-
   const resize = function() {
     let transform = null;
     if (CTX) {
@@ -77,12 +84,21 @@ export function setup_generic_map(contentdiv, DATA) {
   resize();
   window.onresize = resize;
   CANVAS.addEventListener('mousedown',(e) => { CTX.handleMouseDown(e) }, false);
-  CANVAS.addEventListener('mousemove',(e) => { if (CTX.handleMouseMove(e)) draw(CTX,DATA);  }, false);
+  CANVAS.addEventListener('mousemove',(e) => { 
+    if (CTX.handleMouseMove(e)) {
+      draw(CTX,DATA);
+    } else {
+      CTX.draw_mouse();
+    }
+  }, false);
   CANVAS.addEventListener('mouseup',(e) => { CTX.handleMouseUp(e) }, false);
   CANVAS.addEventListener('DOMMouseScroll',(e) => { CTX.handleScroll(e); draw(CTX,DATA);    }, false);
   CANVAS.addEventListener('mousewheel',(e) => { CTX.handleScroll(e); draw(CTX,DATA);        }, false);
   return {
-    'draw':() => { draw(CTX, DATA) },
-    'resize':() => { resize() }
+    draw:() => { draw(CTX, DATA) },
+    resize:() => { resize() },
+    eventToPosition:(e) => { return eventtoposition(e, CTX); },
+    CANVAS:CANVAS,
+    CTX:CTX
   };
 }
