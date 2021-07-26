@@ -1,4 +1,10 @@
 // LARGELY FROM: https://stackoverflow.com/questions/28767221/flexbox-resizing
+const resizep = function(ev) {
+	let parent_node = ev.target.parentNode;
+	if (parent_node) {
+		parent_node.querySelectorAll('[onresize]').forEach(i => i.onresize(ev));
+	}
+}
 
 function manageResize(md, sizeProp, posProp) {
 	var r = md.target;
@@ -42,15 +48,10 @@ function manageResize(md, sizeProp, posProp) {
 		next.style.flexGrow = nextGrowNew;
 
 		lastPos = pos;
-
-		mm.target.parentNode.querySelectorAll('[onresize]').forEach(item => {
-			item.onresize(mm);
-		});
+		resizep(mm);
 	}
 
-	md.target.parentNode.querySelectorAll('[onresize]').forEach(item => {
-		item.onresize(md);
-	});
+	resizep(md);
 
 	function onMouseUp(mu) {
 		// Change cursor to signal a state's change: stop resizing.
@@ -58,9 +59,7 @@ function manageResize(md, sizeProp, posProp) {
 		html.style.cursor = 'default';
 		
 		// NEB MODIFICATION
-		mu.target.parentNode.querySelectorAll('[onresize]').forEach(item => {
-			item.onresize(mu);
-		});
+		resizep(mu);
 
 		if (posProp === 'pageX') {
 			r.style.cursor = 'ew-resize'; 
