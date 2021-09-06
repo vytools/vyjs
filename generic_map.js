@@ -3,6 +3,7 @@ import { initialize_map } from "https://cdn.jsdelivr.net/gh/natebu/jsutilities@v
 // allowable objects:
 // polygons => {draw_type:'polygon', points:[{x:0,y:0},{x:200,y:0},{x:200,y:200}],fillStyle:'red',strokeStyle:'rgba(0,0,0,0.5)'}
 // circles => {draw_type:'circle', x:0, y:0, radius:10, fillStyle:'red',strokeStyle:'rgba(0,0,0,0.5)'}
+// text => {draw_type:'text',fillText:'hi',font:'30px Arial',fillStyle:'red',textAlign:'center'}
 // images => {draw_type:'image', x:0, y:0, w:100, h:100, rotation:1.57, image:img1}
     // x, y, position of bottom left corner, positive is rotation counter-clockwise around that point
     // var img1 = new Image();
@@ -40,6 +41,17 @@ let draw_circle = function(circ, ctx) {
   if (circ.strokeStyle || circ.lineWidth) ctx.stroke()
 }
 
+let draw_text = function(txt, ctx) {
+  if (txt.font) ctx.font = txt.font; //"30px Arial";
+  if (txt.fillStyle) ctx.fillStyle = txt.fillStyle; //"red";
+  if (txt.strokeStyle) ctx.strokeStyle = txt.strokeStyle; //"red";
+  if (txt.textAlign) ctx.textAlign = txt.textAlign; // "center"
+  ctx.scale(1,-1);
+  if (txt.fillText) ctx.fillText(txt.fillText, txt.x, -txt.y);
+  if (txt.strokeText) ctx.fillText(txt.strokeText, txt.x, -txt.y);
+  ctx.scale(1,-1);
+}
+
 let draw_thing = function(thing, ctx) {
   if (typeof(thing) == "object") {
     if (thing.hasOwnProperty('draw_type')) {
@@ -47,6 +59,8 @@ let draw_thing = function(thing, ctx) {
         draw_polygon(thing,ctx);
       } else if (thing.draw_type == 'circle') {
         draw_circle(thing,ctx);
+      } else if (thing.draw_type == 'text') {
+        draw_text(thing,ctx);
       } else if (thing.draw_type == 'image') {
         draw_image(thing,ctx);
       }
@@ -97,17 +111,30 @@ export function setup_generic_map(contentdiv, DATA) {
   }
   resize();
   window.onresize = resize;
-  CANVAS.addEventListener('mousedown',(e) => { CTX.handleMouseDown(e) }, false);
+  CANVAS.addEventListener('mousedown',(e) => { 
+    if (DATA.disable_map_events) return;
+    CTX.handleMouseDown(e) 
+  }, false);
   CANVAS.addEventListener('mousemove',(e) => { 
+    if (DATA.disable_map_events) return;
     if (CTX.handleMouseMove(e)) {
       draw(CTX,DATA);
     } else {
       CTX.draw_mouse();
     }
   }, false);
-  CANVAS.addEventListener('mouseup',(e) => { CTX.handleMouseUp(e) }, false);
-  CANVAS.addEventListener('DOMMouseScroll',(e) => { CTX.handleScroll(e); draw(CTX,DATA);    }, false);
-  CANVAS.addEventListener('mousewheel',(e) => { CTX.handleScroll(e); draw(CTX,DATA);        }, false);
+  CANVAS.addEventListener('mouseup',(e) => { 
+    if (DATA.disable_map_events) return;
+    CTX.handleMouseUp(e) 
+  }, false);
+  CANVAS.addEventListener('DOMMouseScroll',(e) => { 
+    if (DATA.disable_map_events) return;
+    CTX.handleScroll(e); draw(CTX,DATA);    
+  }, false);
+  CANVAS.addEventListener('mousewheel',(e) => { 
+    if (DATA.disable_map_events) return;
+    CTX.handleScroll(e); draw(CTX,DATA);        
+  }, false);
   return {
     draw:() => { draw(CTX, DATA) },
     resize:() => { resize() },
