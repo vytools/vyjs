@@ -103,7 +103,6 @@ export function map_center(ctx, xc, yc, width,height) { // x, y, map coordinates
   t.e = w/2 - xc*scl;
   t.f = yc*scl + h/2;
   ctx.set_transform(t);
-  draw();
 }
 
 export function setup_generic_map(contentdiv, DATA) {
