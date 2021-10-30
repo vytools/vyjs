@@ -1,4 +1,4 @@
-import { initialize_map } from "https://cdn.jsdelivr.net/gh/natebu/jsutilities@v0.1.5/zoom_pan_canvas.js";
+import { initialize_map } from "https://cdn.jsdelivr.net/gh/natebu/jsutilities@v0.1.7/zoom_pan_canvas.js";
 
 // allowable objects:
 // polygons => {draw_type:'polygon', points:[{x:0,y:0},{x:200,y:0},{x:200,y:200}],fillStyle:'red',strokeStyle:'rgba(0,0,0,0.5)'}
@@ -91,6 +91,19 @@ let eventtoposition = function(evt, ctx) {
   let y = evt.offsetY || (evt.pageY - ctx.canvas.offsetTop);
   let P = ctx.transformedPoint(x, y);
   return {x:P.x, y:-P.y}; // Because in draw there is a scale of -1 in y
+}
+
+export function map_center(ctx, xc, yc, width,height) { // x, y, map coordinates of center and desired width/height
+  let t = ctx.get_transform();
+  let w = ctx.canvas.width;
+  let h = ctx.canvas.height;
+  let scl = Math.min(h/height, w/width);
+  t.a = scl;
+  t.d = scl;
+  t.e = w/2 - xc*scl;
+  t.f = yc*scl + h/2;
+  ctx.set_transform(t);
+  draw();
 }
 
 export function setup_generic_map(contentdiv, DATA) {
