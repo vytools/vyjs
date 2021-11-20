@@ -32,7 +32,7 @@ let draw_polygon = function(poly, ctx) {
 
 let draw_circle = function(circ, ctx) {
   let trnsfrm = ctx.get_transform();
-  if (circ.lineWidth) ctx.lineWidth = circ.width * trnsfrm.a;
+  if (circ.lineWidth) ctx.lineWidth = circ.lineWidth * trnsfrm.a;
   if (circ.fillStyle) ctx.fillStyle = circ.fillStyle;
   if (circ.strokeStyle) ctx.strokeStyle = circ.strokeStyle;
   ctx.beginPath();
