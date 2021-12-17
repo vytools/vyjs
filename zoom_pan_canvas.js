@@ -84,10 +84,20 @@ export function initialize_map(CANVAS) {
 
   trackTransforms(CTX);
 
+  const xyfromevent_ = function(evt, ctx) {
+    let sx = evt.offsetX || (evt.pageX - ctx.canvas.offsetLeft);
+    let sy = evt.offsetY || (evt.pageY - ctx.canvas.offsetTop);
+    let p = ctx.transformedPoint(sx, sy);
+    p.screenx = sx;
+    p.screeny = sy;
+    return p;
+  }
+
   const xyfromevent = function(evt, ctx) {
-    ctx.SCREEN.lastX = evt.offsetX || (evt.pageX - ctx.canvas.offsetLeft);
-    ctx.SCREEN.lastY = evt.offsetY || (evt.pageY - ctx.canvas.offsetTop);
-    ctx.SCREEN.lastMapPoint = ctx.transformedPoint(ctx.SCREEN.lastX, ctx.SCREEN.lastY);
+    let p = xyfromevent_(evt, ctx);
+    ctx.SCREEN.lastX = p.screenx;
+    ctx.SCREEN.lastY = p.screeny;
+    ctx.SCREEN.lastMapPoint = p;
   }
   
   const zoom = function(clicks, ctx) {
@@ -198,9 +208,16 @@ export function initialize_map(CANVAS) {
 
   CTX.handleMouseUp = function(evt) {
     this.SCREEN.dragStart = null;
-    if (!this.SCREEN.dragged) zoom(evt.shiftKey ? -1 : 1 , this);
   }
 
+  CTX.positionToScreen = function(x,y) {
+    return p_to_screen(x,y,this.get_transform());
+  }
+
+  CTX.eventToPosition = function(evt) {
+    return xyfromevent_(evt,CTX);
+  }
+  
   return CTX;
 
 }

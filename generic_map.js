@@ -1,4 +1,4 @@
-import { initialize_map } from "https://cdn.jsdelivr.net/gh/natebu/jsutilities@v0.1.7/zoom_pan_canvas.js";
+import { initialize_map } from "https://cdn.jsdelivr.net/gh/natebu/jsutilities@v0.1.10/zoom_pan_canvas.js";
 
 // allowable objects:
 // polygons => {draw_type:'polygon', points:[{x:0,y:0},{x:200,y:0},{x:200,y:200}],fillStyle:'red',strokeStyle:'rgba(0,0,0,0.5)'}
@@ -86,13 +86,6 @@ let draw = function(ctx, data) {
   ctx.restore();
 }
 
-let eventtoposition = function(evt, ctx) {
-  let x = evt.offsetX || (evt.pageX - ctx.canvas.offsetLeft);
-  let y = evt.offsetY || (evt.pageY - ctx.canvas.offsetTop);
-  let P = ctx.transformedPoint(x, y);
-  return {x:P.x, y:-P.y}; // Because in draw there is a scale of -1 in y
-}
-
 export function map_center(ctx, xc, yc, width,height) { // x, y, map coordinates of center and desired width/height
   let t = ctx.get_transform();
   let w = ctx.canvas.width;
@@ -136,7 +129,7 @@ export function setup_generic_map(contentdiv, DATA) {
     }
   }, false);
   CANVAS.addEventListener('mouseup',(e) => { 
-    if (DATA.disable_map_events) return;
+    // if (DATA.disable_map_events) return;
     CTX.handleMouseUp(e) 
   }, false);
   CANVAS.addEventListener('DOMMouseScroll',(e) => { 
@@ -150,7 +143,14 @@ export function setup_generic_map(contentdiv, DATA) {
   return {
     draw:() => { draw(CTX, DATA) },
     resize:() => { resize() },
-    eventToPosition:(e) => { return eventtoposition(e, CTX); },
+    eventToPosition:(e) => { 
+      let P = CTX.eventToPosition(e);
+      P.y = -P.y; // because of the -1 scale applied above
+      return P;
+    },
+    positionToScreen:(x,y) => {
+      return CTX.positionToScreen(x,-y);
+    },
     CANVAS:CANVAS,
     CTX:CTX
   };
