@@ -1,4 +1,4 @@
-import { initialize_map } from "https://cdn.jsdelivr.net/gh/natebu/jsutilities@v0.1.10/zoom_pan_canvas.js";
+import { initialize_map } from "https://cdn.jsdelivr.net/gh/natebu/jsutilities@v0.1.11/zoom_pan_canvas.js";
 
 // allowable objects:
 // polygons => {draw_type:'polygon', points:[{x:0,y:0},{x:200,y:0},{x:200,y:200}],fillStyle:'red',strokeStyle:'rgba(0,0,0,0.5)'}
@@ -36,7 +36,8 @@ let draw_circle = function(circ, ctx) {
   if (circ.fillStyle) ctx.fillStyle = circ.fillStyle;
   if (circ.strokeStyle) ctx.strokeStyle = circ.strokeStyle;
   ctx.beginPath();
-  ctx.arc(circ.x, circ.y, circ.radius, 0, 2 * Math.PI, false);
+  let r = (circ.hasOwnProperty('radius')) ? circ.radius : circ.pixradius/trnsfrm.a;
+  ctx.arc(circ.x, circ.y, r, 0, 2 * Math.PI, false);
   if (circ.fillStyle) ctx.fill();
   if (circ.strokeStyle || circ.lineWidth) ctx.stroke()
 }
