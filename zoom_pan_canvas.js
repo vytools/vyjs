@@ -118,9 +118,13 @@ export function initialize_map(CANVAS) {
       ctx.font = "12px Arial";
       ctx.fillStyle = 'gray';
       ctx.strokeStyle = 'lightgray';
-    } catch(err) {
-      console.log('problem with font')
-    }
+    } catch(err) {}
+  }
+
+  const fillText = function(ctx,txt,x,y) {
+    try {
+      ctx.fillText(txt,x,y);
+    } catch(err) { }
   }
 
   CTX.draw_mouse = function() {
@@ -130,7 +134,7 @@ export function initialize_map(CANVAS) {
     this.clearRect(0, h-20, w, 20);
     setFont(this);
     this.textAlign = 'right';
-    this.fillText(this.SCREEN.mouseLoc,w-10,h-10);
+    fillText(this, this.SCREEN.mouseLoc, w-10, h-10);
     this.restore();
   }
 
@@ -162,7 +166,7 @@ export function initialize_map(CANVAS) {
       this.moveTo(0, xy_.y);
       this.lineTo(w, xy_.y);
       this.stroke();
-      this.fillText(`${y}`, 5, xy_.y);
+      fillText(this, `${y}`, 5, xy_.y);
     }
     for (var ii = 0; ii < nx; ii++) {
       let jj = 0;
@@ -172,7 +176,7 @@ export function initialize_map(CANVAS) {
       this.moveTo(xy_.x, 0);
       this.lineTo(xy_.x, h);
       this.stroke();
-      if (jj==0) this.fillText(`${x}`, xy_.x, 10); 
+      if (jj==0) fillText(this,`${x}`, xy_.x, 10); 
     }
     this.restore();
   }
