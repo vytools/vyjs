@@ -119,7 +119,7 @@ export function initialize_map(CANVAS) {
       ctx.fillStyle = 'gray';
       ctx.strokeStyle = 'lightgray';
     } catch(err) {
-      console.error(err);
+      console.log('problem with font')
     }
   }
 
