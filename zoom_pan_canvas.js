@@ -114,9 +114,13 @@ export function initialize_map(CANVAS) {
   }
 
   const setFont = function(ctx) {
-    ctx.font = "12px Arial";
-    ctx.fillStyle = 'gray';
-    ctx.strokeStyle = 'lightgray';
+    try {
+      ctx.font = "12px Arial";
+      ctx.fillStyle = 'gray';
+      ctx.strokeStyle = 'lightgray';
+    } catch(err) {
+      console.error(err);
+    }
   }
 
   CTX.draw_mouse = function() {
