@@ -116,6 +116,8 @@ let draw_thing = function(thing, ctx) {
         draw_text(thing,ctx);
       } else if (thing.draw_type == 'image') {
         draw_image(thing,ctx);
+      } else if (ctx.RenderFuncs && ctx.RenderFuncs.hasOwnProperty(thing.draw_type)) {
+        ctx.RenderFuncs[thing.draw_type](thing,ctx);
       }
     } else {
       for (const [key, val] of Object.entries(thing)) {
@@ -151,7 +153,7 @@ export function map_center(ctx, xc, yc, width,height) { // x, y, map coordinates
   ctx.set_transform(t);
 }
 
-export function setup_generic_map(contentdiv, DATA) {
+export function setup_generic_map(contentdiv, DATA, RenderFuncs) {
   let CANVAS = document.createElement('canvas');
   let CTX = null;
   contentdiv.appendChild(CANVAS);
@@ -161,6 +163,7 @@ export function setup_generic_map(contentdiv, DATA) {
       transform = CTX.get_transform();
     }
     CTX = initialize_map(CANVAS);
+    if (RenderFuncs) CTX.RenderFuncs = RenderFuncs;
     CANVAS.width = contentdiv.offsetWidth;
     CANVAS.height = contentdiv.offsetHeight;
     CTX.SCREEN.lastX=CANVAS.width/2, CTX.SCREEN.lastY=CANVAS.height/2;
