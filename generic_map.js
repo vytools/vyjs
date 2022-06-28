@@ -141,7 +141,16 @@ let draw = function(ctx, data) {
   ctx.restore();
 }
 
-export function map_center(ctx, xc, yc, width,height) { // x, y, map coordinates of center and desired width/height
+export function center_map(ctx, xc, yc) { // x, y, map coordinates of center and desired width/height
+  let t = ctx.get_transform();
+  let w = ctx.canvas.width;
+  let h = ctx.canvas.height;
+  t.e = w/2 - xc*t.a;
+  t.f = yc*t.a + h/2;
+  ctx.set_transform(t);
+}
+
+export function center_map_with_dimensions(ctx, xc, yc, width,height) { // x, y, map coordinates of center and desired width/height
   let t = ctx.get_transform();
   let w = ctx.canvas.width;
   let h = ctx.canvas.height;
