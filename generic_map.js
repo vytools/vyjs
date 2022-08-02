@@ -90,7 +90,7 @@ let draw_text = function(txt, ctx) {
       let trnsfrm = ctx.get_transform();
       splt[0] = ''+(px/trnsfrm.a);
       font = splt.join('px');
-      console.log('font',font);
+      //console.log('font',font);
     }
   }
   if (font) ctx.font = font; //"30px Arial";
