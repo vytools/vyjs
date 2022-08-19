@@ -108,6 +108,7 @@ let draw_thing = function(thing, ctx) {
     if (thing.hasOwnProperty('draw_type')) {
       if (thing.draw_type == 'polygon') {
         draw_polygon(thing,ctx);
+      } else if (thing.draw_type == 'none') {
       } else if (thing.draw_type == 'arc') {
         draw_arc(thing,ctx);
       } else if (thing.draw_type == 'circle') {
