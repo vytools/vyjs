@@ -3,7 +3,7 @@
 
 let CHART_INITIALIZED = {};
 
-const chart_transform = function(xyA, xyB, chart, typ) {
+const chart_transform = function(xyA, xyB, chart, typ, cb) {
   if (!(xyA && xyB)) return;
   var scrollscale = 0.05;
   var ok = (typ !== 'zoom') || Math.abs(xyA.x-xyB.x) > 5 && Math.abs(xyA.y-xyB.y) > 5;
@@ -47,10 +47,11 @@ const chart_transform = function(xyA, xyB, chart, typ) {
     }
   }
   chart.update(0);
+  if (cb) cb(chart);
   
 }
 
-const init = function(data, id, parentNode) {
+const init = function(data, id, parentNode, cb) {
   let canvas = parentNode.querySelector('canvas#'+id);
   if (canvas) {
     canvas.parentNode.removeChild(canvas);
@@ -68,13 +69,13 @@ const init = function(data, id, parentNode) {
   canvas.addEventListener('wheel', function(evt) {
     if (evt.shiftKey) {
       var action = (evt.deltaY>0) ? 'scrollup' : 'scrolldown';
-      chart_transform(true, true, chart, action);
+      chart_transform(true, true, chart, action, cb);
     }
   });
 
   canvas.addEventListener('mouseup', function(evt) {
     if (this.dataset.drag === "true") {
-      chart_transform({x:evt.offsetX, y:evt.offsetY}, chart_start_click, chart, 'zoom');
+      chart_transform({x:evt.offsetX, y:evt.offsetY}, chart_start_click, chart, 'zoom', cb);
       chart.update(0);
     }
     this.dataset.drag = "false";
@@ -93,7 +94,7 @@ const init = function(data, id, parentNode) {
     } else if (chart_start_click) {
       var dx = x - chart_start_click.x;
       var dy = y - chart_start_click.y;
-      chart_transform({x:x, y:y}, chart_start_click, chart, 'pan');
+      chart_transform({x:x, y:y}, chart_start_click, chart, 'pan', cb);
       chart_start_click.x = x;
       chart_start_click.y = y;
     }
@@ -109,30 +110,29 @@ const init = function(data, id, parentNode) {
   });
   
   canvas.addEventListener('dblclick', function(evt) {
-    chart_transform(true, true, chart, 'reset');
+    chart_transform(true, true, chart, 'reset', cb);
   })
 
   return chart;
 }
 
-const try_init = function(data, id, parentNode, resolve, reject) {
+const try_init = function(data, id, parentNode, resolve, reject, cb) {
   try {  
-    resolve(init(data, id, parentNode));  
+    resolve(init(data, id, parentNode, cb));  
   } catch(err) {
     reject(err);
   }
 }
 
-export function dynamic_chart(data, id, parentNode) {
+const dynamic_chart = function(data, id, parentNode, cb) {
 
   return new Promise((resolve, reject) => {
     if (!CHART_INITIALIZED.hasOwnProperty(id)) {
       CHART_INITIALIZED[id] = true;
-      setTimeout(() => try_init(data, id, parentNode, resolve, reject),1000); // Get errors otherwise :(
+      setTimeout(() => try_init(data, id, parentNode, resolve, reject, cb),1000); // Get errors otherwise :(
     } else {
-      try_init(data, id, parentNode, resolve, reject);
+      try_init(data, id, parentNode, resolve, reject, cb);
     }  
   });
 
 }      
-

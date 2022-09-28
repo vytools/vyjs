@@ -65,7 +65,17 @@ let draw_polygon = function(poly, ctx) {
   ctx.moveTo(poly.points[0].x, poly.points[0].y);
   poly.points.forEach(p => { ctx.lineTo(p.x, p.y); })
   if (poly.fillStyle) ctx.fill();
-  if (poly.strokeStyle) ctx.stroke()
+  if (poly.strokeStyle) ctx.stroke();
+
+  if (poly.circles && poly.circles.radius && poly.circles.color) {
+    ctx.fillStyle = poly.circles.color;
+    let r = (poly.circles.scaleSizeToScreen) ? poly.circles.radius/trnsfrm.a : poly.circles.radius;
+    poly.points.forEach(p => {
+      ctx.beginPath();
+      ctx.arc(p.x, p.y, r, 0, 2 * Math.PI, false);
+      ctx.fill();
+    });
+  }
 }
 
 let draw_circle = function(circ, ctx) {

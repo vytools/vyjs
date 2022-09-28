@@ -195,21 +195,27 @@ export function initialize_map(CANVAS) {
   };
 
   CTX.handleMouseDown = function(evt) {
-    document.body.style.mozUserSelect = document.body.style.webkitUserSelect = document.body.style.userSelect = 'none';
-    xyfromevent(evt, this);
-    this.SCREEN.dragStart = CTX.transformedPoint(this.SCREEN.lastX, this.SCREEN.lastY);
-    this.SCREEN.dragged = false;
+    if (evt.buttons == 1) {
+      document.body.style.mozUserSelect = document.body.style.webkitUserSelect = document.body.style.userSelect = 'none';
+      xyfromevent(evt, this);
+      this.SCREEN.dragStart = CTX.transformedPoint(this.SCREEN.lastX, this.SCREEN.lastY);
+      this.SCREEN.dragged = false;
+    }
     return false;
   }
 
   CTX.handleMouseMove = function(evt) {
     xyfromevent(evt, this);
     this.SCREEN.mouseLoc = `x = ${this.SCREEN.lastMapPoint.x.toPrecision(3)} y =${this.SCREEN.lastMapPoint.y.toPrecision(3)}`;
-    this.SCREEN.dragged = true;
-    if (this.SCREEN.dragStart){
-      let pt = this.transformedPoint(this.SCREEN.lastX, this.SCREEN.lastY);
-      this.translate(pt.x-this.SCREEN.dragStart.x, pt.y-this.SCREEN.dragStart.y);
-      return true;
+    if (evt.buttons == 1) {
+      this.SCREEN.dragged = true;
+      if (this.SCREEN.dragStart){
+        let pt = this.transformedPoint(this.SCREEN.lastX, this.SCREEN.lastY);
+        this.translate(pt.x-this.SCREEN.dragStart.x, pt.y-this.SCREEN.dragStart.y);
+        return true;
+      }
+    } else {
+      this.SCREEN.dragStart = null;
     }
     return false;
   }
