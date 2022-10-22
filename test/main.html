@@ -1,0 +1,24 @@
+<html>
+  <head>
+    <meta content="text/html;charset=utf-8" http-equiv="Content-Type">
+    <meta content="utf-8" http-equiv="encoding">    
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.0.2/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-EVSTQN3/azprG1Anm3QDgpJLIm9Nao0Yz1ztcQTwFspd3yD65VohhpuuCOmLASjC" crossorigin="anonymous">
+    <style>.full {width:100%; height:100%;}</style>
+  </head>
+
+  <body class="full">
+    <div id="map" class="full" onresize="resizex()"></div>
+  </body>
+
+<script type="module">
+import { setup_generic_map, draw_data_example } from "/generic_map.js";
+let DRAW_DATA = draw_data_example();
+let DRAW_EXT = {};
+let MAPDIV = document.querySelector('#map');
+let MAPFUNCS = setup_generic_map(MAPDIV, DRAW_DATA, DRAW_EXT);
+window.resizex = function(event) { if (MAPFUNCS) MAPFUNCS.resize(); }
+</script>
+
+</html>
+
+

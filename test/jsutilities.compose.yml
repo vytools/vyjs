@@ -1,0 +1,14 @@
+x-vy:
+  anchors:
+    PATH: repo:git|github.com|NateBu|jsutilities
+services:
+  server:
+    command: python3 /jsutilities/test/testserver.py --directory /jsutilities
+    image: python:3.10-slim
+    ports:
+      - 80:80
+    volumes:
+      - $PATH:/jsutilities:ro
+  
+version: '3.6'
+  

@@ -12,7 +12,19 @@ export function draw_data_example() {
     {draw_type:'text',x:200,y:-200,fillText:'hi',font:'30px Arial',fillStyle:'red',textAlign:'center'},
     {draw_type:'text',x:200,y:-250,fillText:'hi',font:'30px Arial',fillStyle:'green',textAlign:'center', scaleSizeToScreen:true},
     {draw_type:'image', x:-200, y:200, w:100, h:100, rotation:1.57, image:img1},
-    {draw_type:'arc', x0:400, y0:-300, q0:Math.PI*4/2, k:0.01, L:100, strokeStyle:'blue', lineWidth:2}
+    {draw_type:'arc', x0:400, y0:-300, q0:Math.PI*4/2, k:0.01, L:100, strokeStyle:'blue', lineWidth:2},
+    {
+      draw_toggle:'circleA',
+      x:{draw_type:'circle',fillStyle:'blue',x:100,y:-600,radius:100,strokeStyle:'black',lineWidth:1}
+    },
+    {
+      draw_toggle:'circleB',
+      somestuff:[
+          {draw_type:'circle',fillStyle:'red',x:100,y:-800,radius:100,strokeStyle:'black',lineWidth:5},
+          {draw_type:'circle',fillStyle:'purple',x:300,y:-800,radius:100,strokeStyle:'black',lineWidth:5,scaleSizeToScreen:true}
+      ]
+    }
+
   ];
 }
 
@@ -82,7 +94,7 @@ let draw_circle = function(circ, ctx) {
   let trnsfrm = ctx.get_transform();
   let radius = circ.pixradius || circ.radius; // backward compatibility with pixradius instead of scaleSizeToScreen;
   if (circ.scaleSizeToScreen || circ.pixradius) radius /= trnsfrm.a;
-  if (circ.lineWidth) ctx.lineWidth = circ.lineWidth * trnsfrm.a;
+  if (circ.lineWidth) ctx.lineWidth = (circ.scaleSizeToScreen) ? circ.lineWidth/trnsfrm.a : circ.lineWidth; // * trnsfrm.a;
   if (circ.fillStyle) ctx.fillStyle = circ.fillStyle;
   if (circ.strokeStyle) ctx.strokeStyle = circ.strokeStyle;
   ctx.beginPath();
@@ -113,8 +125,16 @@ let draw_text = function(txt, ctx) {
   ctx.scale(1,-1);
 }
 
-let draw_thing = function(thing, ctx) {
+let draw_thing = function(thing, ctx, toggleable, togname) {
   if (typeof(thing) == "object") {
+    if (thing.hasOwnProperty('draw_toggle')) {
+      let current = Boolean(thing._draw_toggle_off_);
+      thing._draw_toggle_off_ = (thing.draw_toggle == togname) ? !current : current;
+      let cls = (thing._draw_toggle_off_) ? 'btn-light' : 'btn-dark';
+      let but = `<button class="btn btn-sm ${cls} form-control mt-1">${thing.draw_toggle}</button>`;
+      toggleable.insertAdjacentHTML('beforeend',but)
+    }
+    if (thing._draw_toggle_off_) return;
     if (thing.hasOwnProperty('draw_type')) {
       if (thing.draw_type == 'polygon') {
         draw_polygon(thing,ctx);
@@ -133,22 +153,24 @@ let draw_thing = function(thing, ctx) {
     } else {
       for (const [key, val] of Object.entries(thing)) {
         if (Array.isArray(val)) {
-          val.forEach(v => draw_thing(v, ctx));
+          val.forEach(v => draw_thing(v, ctx, toggleable, togname));
         } else {
-          draw_thing(val, ctx);
+          draw_thing(val, ctx, toggleable, togname);
         }
       }  
     }
   }
 }
 
-let draw = function(ctx, data) {
+let draw = function(ctx, data, togname) {
   ctx.save();
   ctx.clear_all();
   ctx.scale(1,-1);
   ctx.draw_grid();
   ctx.draw_mouse();
-  draw_thing(data, ctx);
+  let toggleable = ctx.canvas.parentElement.querySelector('div.toggleable');
+  while (toggleable.firstChild) toggleable.removeChild(toggleable.lastChild);
+  draw_thing(data, ctx, toggleable, togname);
   ctx.restore();
 }
 
@@ -177,6 +199,11 @@ export function setup_generic_map(contentdiv, DATA, RenderFuncs) {
   let CANVAS = document.createElement('canvas');
   let CTX = null;
   contentdiv.appendChild(CANVAS);
+  contentdiv.insertAdjacentHTML('beforeend',`
+  <div class="toggleable form-group" style="position: absolute; bottom:30px; right:10px; width:200px">
+  </div>`);
+  let TOGGLEABLE = contentdiv.querySelector('div.toggleable');
+
   const resize = function() {
     let transform = null;
     if (CTX) {
@@ -188,10 +215,14 @@ export function setup_generic_map(contentdiv, DATA, RenderFuncs) {
     CANVAS.height = contentdiv.offsetHeight;
     CTX.SCREEN.lastX=CANVAS.width/2, CTX.SCREEN.lastY=CANVAS.height/2;
     if (transform) CTX.set_transform(transform);
-    draw(CTX, DATA);
+    draw(CTX, DATA, null);
   }
   resize();
   window.onresize = resize;
+  TOGGLEABLE.addEventListener('click',(e) => {
+    let tog = e.target.closest('button');
+    if (tog && tog.innerText) draw(CTX, DATA, tog.innerText);
+  })
   CANVAS.addEventListener('mousedown',(e) => { 
     if (DATA.disable_map_events) return;
     CTX.handleMouseDown(e) 
@@ -199,7 +230,7 @@ export function setup_generic_map(contentdiv, DATA, RenderFuncs) {
   CANVAS.addEventListener('mousemove',(e) => { 
     if (DATA.disable_map_events) return;
     if (CTX.handleMouseMove(e)) {
-      draw(CTX,DATA);
+      draw(CTX,DATA, null);
     } else {
       CTX.draw_mouse();
     }
@@ -210,14 +241,14 @@ export function setup_generic_map(contentdiv, DATA, RenderFuncs) {
   }, false);
   CANVAS.addEventListener('DOMMouseScroll',(e) => { 
     if (DATA.disable_map_events) return;
-    CTX.handleScroll(e); draw(CTX,DATA);    
+    CTX.handleScroll(e); draw(CTX,DATA, null);    
   }, false);
   CANVAS.addEventListener('mousewheel',(e) => { 
     if (DATA.disable_map_events) return;
-    CTX.handleScroll(e); draw(CTX,DATA);        
+    CTX.handleScroll(e); draw(CTX,DATA, null);        
   }, false);
   return {
-    draw:() => { draw(CTX, DATA) },
+    draw:() => { draw(CTX, DATA, null) },
     resize:() => { resize() },
     eventToPosition:(e) => { 
       let P = CTX.eventToPosition(e);
