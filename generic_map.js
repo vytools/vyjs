@@ -17,7 +17,7 @@ let draw_arc = function(arc, ctx) {
   let q0 = arc.q0 || 0;
   let k = arc.k || 0;
   ctx.beginPath();
-  if (Math.abs(k) > 1e-8) {
+  if (Math.abs(k) > 0.001) { // something happens below this limit so that it doesn't draw correctly, make it a straight line
     let dq = (k > 0) ? Math.PI/2 : -Math.PI/2;
     let r = Math.abs(1/k);
     let cx = x0 + Math.cos(q0+dq)*r;
@@ -185,6 +185,7 @@ export function setup_generic_map(contentdiv, DATA, RenderFuncs) {
     if (RenderFuncs) CTX.RenderFuncs = RenderFuncs;
     CANVAS.width = contentdiv.offsetWidth;
     CANVAS.height = contentdiv.offsetHeight;
+    console.log('w','h',CANVAS.width, CANVAS.height)
     CTX.SCREEN.lastX=CANVAS.width/2, CTX.SCREEN.lastY=CANVAS.height/2;
     if (transform) CTX.set_transform(transform);
     draw(CTX, DATA, null);
