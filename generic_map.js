@@ -98,39 +98,43 @@ let draw_text = function(txt, ctx) {
 }
 
 let draw_thing = function(thing, ctx, toggleable, togname) {
-  if (typeof(thing) == "object") {
-    if (thing.hasOwnProperty('draw_toggle')) {
-      let current = Boolean(thing._draw_toggle_off_);
-      thing._draw_toggle_off_ = (thing.draw_toggle == togname) ? !current : current;
-      let cls = (thing._draw_toggle_off_) ? 'btn-light' : 'btn-dark';
-      let but = `<button class="btn btn-sm ${cls} form-control mt-1">${thing.draw_toggle}</button>`;
-      toggleable.insertAdjacentHTML('beforeend',but)
-    }
-    if (thing._draw_toggle_off_) return;
-    if (thing.hasOwnProperty('draw_type')) {
-      if (thing.draw_type == 'polygon') {
-        draw_polygon(thing,ctx);
-      } else if (thing.draw_type == 'none') {
-      } else if (thing.draw_type == 'arc') {
-        draw_arc(thing,ctx);
-      } else if (thing.draw_type == 'circle') {
-        draw_circle(thing,ctx);
-      } else if (thing.draw_type == 'text') {
-        draw_text(thing,ctx);
-      } else if (thing.draw_type == 'image') {
-        draw_image(thing,ctx);
-      } else if (ctx.RenderFuncs && ctx.RenderFuncs.hasOwnProperty(thing.draw_type)) {
-        ctx.RenderFuncs[thing.draw_type](thing,ctx);
+  try {
+    if (typeof(thing) == "object") {
+      if (thing.hasOwnProperty('draw_toggle')) {
+        let current = Boolean(thing._draw_toggle_off_);
+        thing._draw_toggle_off_ = (thing.draw_toggle == togname) ? !current : current;
+        let cls = (thing._draw_toggle_off_) ? 'btn-light' : 'btn-dark';
+        let but = `<button class="btn btn-sm ${cls} form-control mt-1">${thing.draw_toggle}</button>`;
+        toggleable.insertAdjacentHTML('beforeend',but)
       }
-    } else {
-      for (const [key, val] of Object.entries(thing)) {
-        if (Array.isArray(val)) {
-          val.forEach(v => draw_thing(v, ctx, toggleable, togname));
-        } else {
-          draw_thing(val, ctx, toggleable, togname);
+      if (thing._draw_toggle_off_) return;
+      if (thing.hasOwnProperty('draw_type')) {
+        if (thing.draw_type == 'polygon') {
+          draw_polygon(thing,ctx);
+        } else if (thing.draw_type == 'none') {
+        } else if (thing.draw_type == 'arc') {
+          draw_arc(thing,ctx);
+        } else if (thing.draw_type == 'circle') {
+          draw_circle(thing,ctx);
+        } else if (thing.draw_type == 'text') {
+          draw_text(thing,ctx);
+        } else if (thing.draw_type == 'image') {
+          draw_image(thing,ctx);
+        } else if (ctx.RenderFuncs && ctx.RenderFuncs.hasOwnProperty(thing.draw_type)) {
+          ctx.RenderFuncs[thing.draw_type](thing,ctx);
         }
-      }  
+      } else {
+        for (const [key, val] of Object.entries(thing)) {
+          if (Array.isArray(val)) {
+            val.forEach(v => draw_thing(v, ctx, toggleable, togname));
+          } else {
+            draw_thing(val, ctx, toggleable, togname);
+          }
+        }  
+      }
     }
+  } catch(err) {
+    console.error(err);
   }
 }
 
@@ -185,7 +189,7 @@ export function setup_generic_map(contentdiv, DATA, RenderFuncs) {
     if (RenderFuncs) CTX.RenderFuncs = RenderFuncs;
     CANVAS.width = contentdiv.offsetWidth;
     CANVAS.height = contentdiv.offsetHeight;
-    console.log('w','h',CANVAS.width, CANVAS.height)
+    // console.log('w','h',CANVAS.width, CANVAS.height)
     CTX.SCREEN.lastX=CANVAS.width/2, CTX.SCREEN.lastY=CANVAS.height/2;
     if (transform) CTX.set_transform(transform);
     draw(CTX, DATA, null);
