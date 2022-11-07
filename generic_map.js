@@ -100,7 +100,7 @@ let draw_text = function(txt, ctx) {
 let draw_thing = function(thing, ctx, toggleable, togname) {
   try {
     if (typeof(thing) == "object") {
-      if (thing.hasOwnProperty('draw_toggle')) {
+      if (thing.draw_toggle) {
         let current = Boolean(thing._draw_toggle_off_);
         thing._draw_toggle_off_ = (thing.draw_toggle == togname) ? !current : current;
         let cls = (thing._draw_toggle_off_) ? 'btn-light' : 'btn-dark';
