@@ -16,13 +16,13 @@ def server(directory=BASEPATH, port=80):
       if self.path == '/':
         sendx(self, 'text/html', '<p>put path to file e.g. http::/localhost:{}/main.html</p>'.format(port).encode())
       else:
-        exclude = set(['.git','.hg','.pycache'])
+        exclude = set(['.git','.hg','.pycache','node_modules'])
         for root, dirs, files in os.walk(directory, topdown=True):
           dirs[:] = [d for d in dirs if d not in exclude]
           for f in files:
             fname = os.path.join(root,f)
             rpath = '/'+os.path.relpath(fname,directory).replace('\\','\/')
-            # print(self.path, rpath, flush=True)
+            print(self.path, rpath, flush=True)
             if self.path == rpath and '..' not in self.path:
               if fname.endswith('.html'):
                 sendx(self, 'text/html', Path(fname).read_text().encode())

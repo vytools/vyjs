@@ -1,6 +1,6 @@
 x-vy:
   anchors:
-    PATH: repo:git|github.com|NateBu|jsutilities
+    PATH: repo:git|github.com|vytools|jsutilities
 services:
   server:
     command: python3 /jsutilities/test/testserver.py --directory /jsutilities
