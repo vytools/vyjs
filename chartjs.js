@@ -1,8 +1,6 @@
 // chart.js should be loaded first e.g. this has been tested:
 // import 'https://cdnjs.cloudflare.com/ajax/libs/Chart.js/2.7.2/Chart.bundle.min.js'
 
-let CHART_INITIALIZED = {};
-
 const chart_transform = function(xyA, xyB, chart, typ, cb) {
   if (!(xyA && xyB)) return;
   var scrollscale = 0.05;
@@ -51,7 +49,7 @@ const chart_transform = function(xyA, xyB, chart, typ, cb) {
   
 }
 
-const init = function(data, id, parentNode, cb) {
+export function dynamic_chart(data, id, parentNode, cb) {
   let canvas = parentNode.querySelector('canvas#'+id);
   if (canvas) {
     canvas.parentNode.removeChild(canvas);
@@ -115,24 +113,3 @@ const init = function(data, id, parentNode, cb) {
 
   return chart;
 }
-
-const try_init = function(data, id, parentNode, resolve, reject, cb) {
-  try {  
-    resolve(init(data, id, parentNode, cb));  
-  } catch(err) {
-    reject(err);
-  }
-}
-
-export function dynamic_chart(data, id, parentNode, cb) {
-
-  return new Promise((resolve, reject) => {
-    if (!CHART_INITIALIZED.hasOwnProperty(id)) {
-      CHART_INITIALIZED[id] = true;
-      setTimeout(() => try_init(data, id, parentNode, resolve, reject, cb),1000); // Get errors otherwise :(
-    } else {
-      try_init(data, id, parentNode, resolve, reject, cb);
-    }  
-  });
-
-}      

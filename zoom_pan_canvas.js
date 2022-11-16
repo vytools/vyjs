@@ -138,14 +138,24 @@ export function initialize_map(CANVAS) {
     this.restore();
   }
 
+  const stringifie = function(num,pwr) {
+    let s = ''+num;
+    return (s.length > (Math.max(0,-pwr)+3)) ? num.toFixed(Math.max(0,1-pwr)) : s;
+  }
+
   CTX.draw_grid = function() {
     let w = this.canvas.width, h = this.canvas.height;
     let a = this.transformedPoint(0,h); // bottom left
     let b = this.transformedPoint(w,0); // top right
     let t = this.get_transform();
     let dx = Math.abs(b.x-a.x);
+    if (dx == 0) {
+      console.log('too much zoom!')
+      return;
+    }
     let n = w/40;             // want roughly this many intervals
-    let delta10 = Math.pow(10,Math.floor(Math.log10(dx/n))+1);  // nearest base 10
+    let pwr = Math.floor(Math.log10(dx/n));
+    let delta10 = Math.pow(10,pwr+1);  // nearest base 10
     let px = w/(dx/delta10); // number of pixels at this delta10
     let nsmall = (px > 500) ? 10 : (px > 200) ? 4 : (px > 100) ? 2 : 1;
     let delta = delta10/nsmall; // adjust delta
@@ -159,16 +169,16 @@ export function initialize_map(CANVAS) {
     this.setTransform(1, 0, 0, 1, 0, 0);
     this.lineWidth = 1;
     setFont(this);
-    for (var ii = 0; ii < ny; ii++) {
+    for (var ii = 0; ii < ny+1; ii++) {
       let y  = y0 + ii*sgny*delta;
       let xy_ = p_to_screen(0,y,t);
       this.beginPath();
       this.moveTo(0, xy_.y);
       this.lineTo(w, xy_.y);
       this.stroke();
-      fillText(this, `${y}`, 5, xy_.y);
+      fillText(this, stringifie(y,pwr), 5, xy_.y);
     }
-    for (var ii = 0; ii < nx; ii++) {
+    for (var ii = 0; ii < nx+1; ii++) {
       let jj = 0;
       let x  = x0 + ii*sgnx*delta;
       let xy_ = p_to_screen(x,0,t);
@@ -176,7 +186,7 @@ export function initialize_map(CANVAS) {
       this.moveTo(xy_.x, 0);
       this.lineTo(xy_.x, h);
       this.stroke();
-      if (jj==0) fillText(this,`${x}`, xy_.x, 10); 
+      if (jj==0) fillText(this, stringifie(x,pwr), xy_.x, 10); 
     }
     this.restore();
   }
