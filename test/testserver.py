@@ -11,7 +11,7 @@ def sendx(self, typ, c):
   self.wfile.write(c)
 
 def server(directory=BASEPATH, port=80):
-  class JsUtilitiesHTTPRequestHandler(SimpleHTTPRequestHandler):
+  class VyJSHTTPRequestHandler(SimpleHTTPRequestHandler):
     def do_GET(self):
       if self.path == '/':
         sendx(self, 'text/html', '<p>put path to file e.g. http::/localhost:{}/main.html</p>'.format(port).encode())
@@ -36,9 +36,9 @@ def server(directory=BASEPATH, port=80):
         self.send_response(404)
         self.end_headers()
 
-  print('Serving jsutilities test on http://localhost:{p}'.format(p=port),flush=True)
+  print('Serving vyjs test on http://localhost:{p}'.format(p=port),flush=True)
   TCPServer.allow_reuse_address = True
-  with TCPServer(("", port), JsUtilitiesHTTPRequestHandler) as httpd:
+  with TCPServer(("", port), VyJSHTTPRequestHandler) as httpd:
     httpd.serve_forever()
   
 if __name__ == '__main__':
