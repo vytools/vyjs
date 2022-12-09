@@ -232,6 +232,8 @@ export function setup_generic_map(contentdiv, DATA, RenderFuncs) {
       P.y = -P.y; // because of the -1 scale applied above
       return P;
     },
+    centerMap:(x,y) => { center_map(CTX,x,y); },
+    centerMapWithDimensions:(x,y,width,height) => { center_map_with_dimensions(CTX,x,y,width,height); },
     positionToScreen:(x,y) => {
       return CTX.positionToScreen(x,-y);
     },
