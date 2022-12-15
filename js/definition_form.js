@@ -1,14 +1,14 @@
 const native = {
-    "bool":{type:"checkbox",default:false,cl:"form-check-input d_f_d_chk",attributes:'',op:x => x == 'true'},
-    "string":{type:"text",default:'',cl:"form-control",attributes:'',op: x=>x},
-    "float32":{type:"number",default:0,cl:"form-control",attributes:'step="any"',op:parseFloat},
-    "float64":{type:"number",default:0,cl:"form-control",attributes:'step="any"',op:parseFloat},
-    "int16":{type:"number",default:0,cl:"form-control",attributes:'step:"1" min="-32768" max="32767"',op:parseInt},
-    "uint16":{type:"number",default:0,cl:"form-control",attributes:'step:"1" min="0" max="32767"',op:parseInt},
-    "int8":{type:"number",default:0,cl:"form-control",attributes:'step:"1" min="-128" max="127"',op:parseInt},
-    "uint8":{type:"number",default:0,cl:"form-control",attributes:'step:"1" min="0" max="255"',op:parseInt},
-    "int32":{type:"number",default:0,cl:"form-control",attributes:'step:"1"',op:parseInt},
-    "uint32":{type:"number",default:0,cl:"form-control",attributes:'step:"1" min="0"',op:parseInt},
+    "bool":{type:"checkbox", default:false, cl:"form-check-input d_f_d_chk", attributes:'', op:x=>x},
+    "string":{type:"text", default:'', cl:"form-control", attributes:'', op: x=>x},
+    "float32":{type:"number", default:0, cl:"form-control", attributes:'step="any"', op:parseFloat},
+    "float64":{type:"number", default:0, cl:"form-control", attributes:'step="any"', op:parseFloat},
+    "int16":{type:"number", default:0, cl:"form-control", attributes:'step:"1" min="-32768" max="32767"', op:parseInt},
+    "uint16":{type:"number", default:0, cl:"form-control", attributes:'step:"1" min="0" max="32767"', op:parseInt},
+    "int8":{type:"number", default:0, cl:"form-control", attributes:'step:"1" min="-128" max="127"', op:parseInt},
+    "uint8":{type:"number", default:0, cl:"form-control", attributes:'step:"1" min="0" max="255"', op:parseInt},
+    "int32":{type:"number", default:0, cl:"form-control", attributes:'step:"1"', op:parseInt},
+    "uint32":{type:"number", default:0, cl:"form-control", attributes:'step:"1" min="0"', op:parseInt},
 }
 const INITIALCHAR = '_';
 
@@ -18,9 +18,15 @@ const create_fields = function(topcontainer, definitions, topdef, obj, accumulat
         let n = native[topdef.type];
         topcontainer.classList.add('row');
         let val = (obj == null) ? n.default : obj;
-        let inp = `<div class="col-sm-6 col-form-label-sm">
-            <input type="${n.type}" data-ntyp="${topdef.type}" data-pth="${accumulated_name}" class="form-control-sm ${n.cl}" ${n.attributes} value="${val}"></div>`;
-        let txt = `<label class="col-sm-6">${labl + (topdef.name || '')}</label>${inp}`
+        let valstr = (topdef.type != 'bool') ? ` value="${val}"` : (val) ? ' checked' : ' ';
+        let inp = `<div class="col-sm-6 col-form-label-sm" title="${topdef.description || ''}">`;
+        if (topdef.hasOwnProperty('options')) {
+            let options = topdef.options.map(opt => `<option value="${opt}" ${(opt==val) ? 'selected' : ''}>${opt}</option>`).join('');
+            inp += `<select data-ntyp="${topdef.type}" data-pth="${accumulated_name}" class="form-control-sm ${n.cl}">${options}</select></div>`;
+        } else {
+            inp += `<input type="${n.type}" data-ntyp="${topdef.type}" data-pth="${accumulated_name}" class="form-control-sm ${n.cl}" ${n.attributes} ${valstr}></div>`;
+        }
+        let txt = `<label class="col-sm-6" title="${topdef.description || ''}">${labl + (topdef.name || '')}</label>${inp}`
         
         topcontainer.insertAdjacentHTML('beforeend',txt);
     } else if (definitions.hasOwnProperty(topdef.type)) {
@@ -187,14 +193,15 @@ const create_new_form = function(container, topdef, D) {
             }
         });
     });
-    container.querySelectorAll('input').forEach(inp => {
-        inp.addEventListener('input', (ev) => {
-            if (native.hasOwnProperty(inp.dataset.ntyp)) {
-                let val = native[inp.dataset.ntyp].op(inp.value);
-                by_path(container, topdef, inp.dataset.pth, 'mod', val, D);
-            }
-        });
-    });
+
+    const update = (ev,inp) => {
+        if (native.hasOwnProperty(inp.dataset.ntyp)) {
+            let val = native[inp.dataset.ntyp].op(inp.value);
+            by_path(container, topdef, inp.dataset.pth, 'mod', val, D);
+        }
+    }
+    container.querySelectorAll('select').forEach(inp => { inp.addEventListener('change', ev=> { update(ev,inp); }); });
+    container.querySelectorAll('input').forEach(inp => { inp.addEventListener('input', ev=> { update(ev,inp) }); });
     
 }
 
@@ -217,7 +224,7 @@ export function create(container, definitions, def, obj, functions) {
     };
     while(container.firstChild){ container.removeChild(container.firstChild);}
     container.insertAdjacentHTML('beforeend',`
-        <input class="upload" type="file" style="display: none;"/>
+        <input class="upload" type="file" accept=".json" style="display: none;"/>
         <div class="definition_form_buttons" style="padding:5px">
             <button class="btn btn-sm btn-dark upload">Upload</button>
             ${(functions.save) ? '<button class="btn btn-sm btn-dark upload">Save</button>' : ''}
@@ -229,6 +236,12 @@ export function create(container, definitions, def, obj, functions) {
             functions.save(D.object)
         });
     }
+    const reload = function(objct) {
+        for (var key in objct) { D.object[key] = objct[key];}
+        create_new_form(container, {type:def}, D);
+        if (D.functions.on_change) D.functions.on_change('', null, D.object);
+    }
+
     container.querySelector('button.upload').addEventListener('click',function(ev) {
         container.querySelector('input.upload').click();
     });
@@ -242,9 +255,8 @@ export function create(container, definitions, def, obj, functions) {
         reader.onload = function(event) {
           var rslt = reader.result;
           var data = JSON.parse((isbinary) ? new Uint8Array(rslt) : rslt);
-          for (var key in data) { D.object[key] = data[key];}
-          create_new_form(container, {type:def}, D);
-          if (D.functions.on_change) D.functions.on_change('',null,D.object);
+          if (D.functions.on_load) data = D.functions.on_load(data);
+          reload(data);
         };
         if (isbinary) {
           reader.readAsArrayBuffer(file); //read the file as arraybuffer
@@ -253,4 +265,5 @@ export function create(container, definitions, def, obj, functions) {
         }
     });
     create_new_form(container, {type:def}, D);
+    return {reload:reload}
 }
