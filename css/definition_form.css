@@ -43,6 +43,10 @@ div.d_f_d_2 {
     flex:calc(100% - 30px);
 }
 
+button.d_f_d_pt {
+    margin-top: 3px
+}
+
 button.d_f_d_xs {
     padding: .25rem .4rem;
     width:24px;

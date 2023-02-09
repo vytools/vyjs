@@ -12,8 +12,20 @@ const native = {
 }
 const INITIALCHAR = '_';
 
+const save_upload_buttons = function(accumulated_name, vertical, deletable) {
+    let vrt = (vertical) ? "d_f_d_pt" : "";
+    let sname = accumulated_name.replace(INITIALCHAR+'.','');
+    let dbut = (!deletable) ? '' : 
+        `<button class="btn d_f_d_xs ${vrt} btn-dark d_f_d_act" title="Remove ${sname}" data-rmv="${accumulated_name}">-</button>`;
+    return `<button class="btn d_f_d_xs ${vrt} btn-dark d_f_d_act" title="Upload replacement for ${sname}" data-upl="${accumulated_name}">&uarr;</button>
+    <button class="btn d_f_d_xs ${vrt} btn-dark d_f_d_act" title="Save ${sname}" data-sav="${accumulated_name}">&darr;</button>${dbut}`;
+}
+
 const create_fields = function(topcontainer, definitions, topdef, obj, accumulated_name, deletable, ignore) {
-    let labl = (deletable > -1) ? `<button class="btn d_f_d_xs btn-dark d_f_d_rf" data-rmv="${accumulated_name}">-</button>` : '';
+    let toplevel = accumulated_name == INITIALCHAR;
+    let isdeleteable = deletable >= 0;
+    let labl = (isdeleteable || toplevel) ? 
+        `<div style="display:flex;flex-flow:column">${save_upload_buttons(accumulated_name, true, isdeleteable)}</div>` : '';
     if (native.hasOwnProperty(topdef.type)) {
         let n = native[topdef.type];
         topcontainer.classList.add('row');
@@ -30,7 +42,6 @@ const create_fields = function(topcontainer, definitions, topdef, obj, accumulat
         
         topcontainer.insertAdjacentHTML('beforeend',txt);
     } else if (definitions.hasOwnProperty(topdef.type)) {
-
         topcontainer.insertAdjacentHTML('beforeend',`<div class="d_f_d_0"><div class="d_f_d_1">${labl}</div><div class="d_f_d_2"></div></div>`);
         let nodes = topcontainer.querySelectorAll('div.d_f_d_2');
         let container = nodes[nodes.length-1];
@@ -43,7 +54,8 @@ const create_fields = function(topcontainer, definitions, topdef, obj, accumulat
             let subcontainer = container;
             if (ignore.filter(ig => accname.match(ig)).length == 0) {
                 if (definitions.hasOwnProperty(d.type)) {
-                    let nn = ((unlimited) ? '<button class="btn d_f_d_xs btn-dark d_f_d_a">+</button>&nbsp;' : '') + d.name;
+                    let svup = (isarray) ? '' : save_upload_buttons(accname,false)+'&nbsp;';
+                    let nn = ((unlimited) ? '<button class="btn d_f_d_xs btn-dark d_f_d_a">+</button>&nbsp;' : '') + svup + d.name;
                     container.insertAdjacentHTML('beforeend',`<label class="d_f_d_t" data-name="${accname}">${nn}</label>
                     <div class="d_f_d_s hide" data-name="${accname}"></div>`);
                     subcontainer = container.querySelector(`div[data-name='${accname}']`);
@@ -100,8 +112,31 @@ const create_object_of_type = function(typ, definitions) {
     }
 }
 
+const upload_or_save_item = function(mod, container, current_type, path, obj, D) {
+    if (mod == 'upl') {
+        let c = container.querySelector('input.upload');
+        c.dataset.path = path;
+        c.click();
+    } else if (mod == 'sav') {
+        if (D.functions.on_save_item) {
+            D.functions.on_save_item(current_type, path, obj);
+        } else {
+            let filename = prompt('Enter object filename:','item.object.json');
+            download(filename,{data:obj, definition:current_type});
+        }
+    }
+}
+
 const by_path = function(container, topdef, path, mod, newval, D) {
+    let current_def = topdef;
+    let changed = true;
     if (D.definitions.hasOwnProperty(topdef.type)) {
+        if (path == INITIALCHAR) {
+            if (mod == 'upl' || mod == 'sav') {
+                upload_or_save_item(mod, container, current_def.type, path, D.object, D);
+            }
+            return;
+        }
         let defs = D.definitions[topdef.type];
         let subobj = D.object;
         let paths = path.replace(INITIALCHAR+'.','').split('.');
@@ -111,13 +146,19 @@ const by_path = function(container, topdef, path, mod, newval, D) {
             if (!isNaN(parseInt(p))) {
                 if (subobj.hasOwnProperty(p)) {
                     if (last) {
-                        if (mod=='rmv') {
+                        if (mod == 'rmv') {
                             subobj.splice(p,1);
                             recreate_new_form_with_visible(container, topdef, path, D);
+                        } else if (mod == 'pat') {
+                            return current_def;
+                        } else if (mod == 'upl' || mod == 'sav') {
+                            changed = false;
+                            upload_or_save_item(mod, container, current_def.type, path, subobj[p], D);
                         } else if (mod == 'mod') {
                             subobj[p] = newval;
-                        } // add is taken care of before you ever get here
-                        if (D.functions.on_change) D.functions.on_change(path,newval,D.object);
+                            recreate_new_form_with_visible(container, topdef, path, D);
+                        } // mod == 'add' is taken care of before you ever get here
+                        if (D.functions.on_change && changed) D.functions.on_change(path,newval,D.object);
                     } else {
                         subobj = subobj[p];
                     }
@@ -127,27 +168,33 @@ const by_path = function(container, topdef, path, mod, newval, D) {
             } else {
                 let exists = subobj.hasOwnProperty(p);
                 for (var ii = 0; ii < defs.length; ii++) {
-                    let def = defs[ii];
-                    if (def.name == p) {
+                    current_def = defs[ii];
+                    if (current_def.name == p) {
                         if (last || !exists) {
                             if (mod == 'rmv') {} else { // can't remove an object only an array item
-                                let o = create_object_of_type(def.type, D.definitions);
-                                let is_array = def.hasOwnProperty('length');
+                                let o = create_object_of_type(current_def.type, D.definitions);
+                                let is_array = current_def.hasOwnProperty('length');
                                 if (mod == 'mod' && last) {
                                     subobj[p] = newval;
+                                    recreate_new_form_with_visible(container, topdef, path, D);
+                                } else if (mod == 'pat') {
+                                    return current_def;
                                 } else if (is_array) {
                                     if (!exists) subobj[p] = [];
                                     subobj[p].push(o);
                                     recreate_new_form_with_visible(container, topdef, path, D);
+                                } else if (mod == 'upl' || mod == 'sav') {
+                                    changed = false;
+                                    upload_or_save_item(mod, container, current_def.type, path, subobj[p], D);
                                 } else {
                                     subobj[p] = o;
                                     recreate_new_form_with_visible(container, topdef, path, D);
                                 }
-                                if (D.functions.on_change) D.functions.on_change(path,newval,D.object);
+                                if (D.functions.on_change && changed) D.functions.on_change(path,newval,D.object);
                             }
                             return;
-                        } else if (D.definitions.hasOwnProperty(def.type)) {
-                            defs = D.definitions[def.type];
+                        } else if (D.definitions.hasOwnProperty(current_def.type)) {
+                            defs = D.definitions[current_def.type];
                             subobj = subobj[p];
                         } else {
                             console.log('fail 2 in by_path')
@@ -163,6 +210,12 @@ const by_path = function(container, topdef, path, mod, newval, D) {
 const create_new_form = function(container, topdef, D) {
     let f = container.querySelector('div.data_form_top_div');
     while(f.firstChild){ f.removeChild(f.firstChild);}
+
+    f.insertAdjacentHTML('beforeend','<input class="upload" type="file" accept=".json" style="display: none;"/>');
+    container.querySelector('input.upload').addEventListener('change',function(ev) {
+        upload_data(ev, container, topdef, ev.target.dataset.path, D);
+    });
+
     let ignore = D.functions.ignore || [];
     create_fields(f, D.definitions, topdef, D.object, INITIALCHAR, -1, ignore);
     container.querySelectorAll("label.d_f_d_t").forEach(li => {
@@ -172,13 +225,18 @@ const create_new_form = function(container, topdef, D) {
             toggle_by_li(ev.target,true);
         });
     });
-    container.querySelectorAll("button.d_f_d_rf").forEach(button => {
+    container.querySelectorAll("button.d_f_d_act").forEach(button => {
         button.addEventListener('click', (ev) => {
             ev.stopPropagation();
             ev.preventDefault();
             let b = ev.target.closest('button');
             if (b) {
-                by_path(container, topdef, b.dataset.rmv, 'rmv', 0, D);
+                let act = (b.dataset.hasOwnProperty('rmv')) ? 'rmv' : 
+                    (b.dataset.hasOwnProperty('upl')) ? 'upl' :
+                    (b.dataset.hasOwnProperty('sav')) ? 'sav' : null;
+                let nme = b.dataset[act].replace('_.','');
+                let cntinue = (act == 'rmv') ? confirm(`Are you sure you want to delete "${nme}"?`) : true;
+                if (cntinue && act != null) by_path(container, topdef, b.dataset[act], act, 0, D);
             }
         });
     });
@@ -206,15 +264,46 @@ const create_new_form = function(container, topdef, D) {
 }
 
 const recreate_new_form_with_visible = function(container, topdef, path, D) {
+    console.log('recreate_new_form_with_visible',path);
     create_new_form(container, topdef, D);
     container.querySelectorAll('div[data-name]').forEach(el => {
         if (path.startsWith(el.dataset.name)) el.classList.remove('hide');
     });
 }
 
+const upload_data = function(event, container, topdef, path, D) {
+    let isbinary = false;
+    event.preventDefault();
+    if (!(event.target.files && event.target.files.length>0)) return;
+    var file = event.target.files[0]; //TODO Modify for multiple files
+    var reader = new FileReader();
+    reader.onload = function(ev) {
+        let data = JSON.parse((isbinary) ? new Uint8Array(reader.result) : reader.result);
+        let current_def = by_path(container, topdef, path, 'pat', null, D);
+        if (D.functions.on_load) data = D.functions.on_load(current_def, path, data);
+        // TODO VALIDATE?
+        if (path == INITIALCHAR) {
+            reload(container, topdef, data, D);
+        } else {
+            by_path(container, topdef, path, 'mod', data, D);
+        }
+    }
+    if (isbinary) {
+      reader.readAsArrayBuffer(file); //read the file as arraybuffer
+    } else {
+      reader.readAsText(file);
+    }
+}
+
+const reload = function(container, topdef, objct, D) {
+    for (var key in objct) { D.object[key] = objct[key];}
+    create_new_form(container, topdef, D);
+    if (D.functions.on_change) D.functions.on_change('', null, D.object);
+}
+
 export function create(container, definitions, def, obj, functions) {
     if (!definitions.hasOwnProperty(def)) {
-        console.log(`Definitions do not container "${def}"`);
+        console.log(`Definitions do not contain "${def}"`);
         return;
     }
     let D = {
@@ -223,47 +312,26 @@ export function create(container, definitions, def, obj, functions) {
         functions:functions
     };
     while(container.firstChild){ container.removeChild(container.firstChild);}
-    container.insertAdjacentHTML('beforeend',`
-        <input class="upload" type="file" accept=".json" style="display: none;"/>
-        <div class="definition_form_buttons" style="padding:5px">
-            <button class="btn btn-sm btn-dark upload">Upload</button>
-            ${(functions.save) ? '<button class="btn btn-sm btn-dark upload">Save</button>' : ''}
-        </div>
-        <div class="data_form_top_div" style="flex:1"></div>
-    `);
-    if (functions.save) {
-        container.querySelector('button.save').addEventListener('click',function(ev) {
-            functions.save(D.object)
-        });
-    }
-    const reload = function(objct) {
-        for (var key in objct) { D.object[key] = objct[key];}
-        create_new_form(container, {type:def}, D);
-        if (D.functions.on_change) D.functions.on_change('', null, D.object);
-    }
+    container.insertAdjacentHTML('beforeend',`<div class="data_form_top_div" style="flex:1"></div>`);
+    let topdef = {type:def};
+    const reload_ = function(data) {
+        if (D.functions.on_load) data = D.functions.on_load(topdef,INITIALCHAR,data);
+        reload(container, topdef, data, D);
+    };
 
-    container.querySelector('button.upload').addEventListener('click',function(ev) {
-        container.querySelector('input.upload').click();
-    });
-    container.querySelector('input.upload').addEventListener('change',function(event) {
-        event.preventDefault();
-        var self = this;
-        if (!(event.target.files && event.target.files.length>0)) return;
-        var isbinary = self.isbinary;
-        var file = event.target.files[0]; //TODO Modify for multiple files
-        var reader = new FileReader();
-        reader.onload = function(event) {
-          var rslt = reader.result;
-          var data = JSON.parse((isbinary) ? new Uint8Array(rslt) : rslt);
-          if (D.functions.on_load) data = D.functions.on_load(data);
-          reload(data);
-        };
-        if (isbinary) {
-          reader.readAsArrayBuffer(file); //read the file as arraybuffer
-        } else {
-          reader.readAsText(file);
-        }
-    });
-    create_new_form(container, {type:def}, D);
-    return {reload:reload}
+    create_new_form(container, topdef, D);
+    return {reload:reload_}
 }
+
+export function download(filename,x) {
+    if (!filename) return;
+    console.log('Downloading to',filename,x)
+    var element = document.createElement('a');
+    element.setAttribute('href', 'data:text/plain;charset=utf-8,' + encodeURIComponent(JSON.stringify(x,null,2)));
+    element.setAttribute('download', filename);
+    element.style.display = 'none';
+    document.body.appendChild(element);
+    element.click();
+    document.body.removeChild(element);
+  }
+  
