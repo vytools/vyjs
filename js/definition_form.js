@@ -156,7 +156,6 @@ const by_path = function(container, topdef, path, mod, newval, D) {
                             upload_or_save_item(mod, container, current_def.type, path, subobj[p], D);
                         } else if (mod == 'mod') {
                             subobj[p] = newval;
-                            recreate_new_form_with_visible(container, topdef, path, D);
                         } // mod == 'add' is taken care of before you ever get here
                         if (D.functions.on_change && changed) D.functions.on_change(path,newval,D.object);
                     } else {
@@ -176,7 +175,6 @@ const by_path = function(container, topdef, path, mod, newval, D) {
                                 let is_array = current_def.hasOwnProperty('length');
                                 if (mod == 'mod' && last) {
                                     subobj[p] = newval;
-                                    recreate_new_form_with_visible(container, topdef, path, D);
                                 } else if (mod == 'pat') {
                                     return current_def;
                                 } else if (is_array) {
@@ -286,6 +284,7 @@ const upload_data = function(event, container, topdef, path, D) {
             reload(container, topdef, data, D);
         } else {
             by_path(container, topdef, path, 'mod', data, D);
+            recreate_new_form_with_visible(container, topdef, path, D);
         }
     }
     if (isbinary) {
