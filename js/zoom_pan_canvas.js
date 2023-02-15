@@ -206,7 +206,8 @@ export function initialize_map(CANVAS) {
 
   CTX.handleMouseDown = function(evt) {
     if (evt.buttons == 1) {
-      document.body.style.mozUserSelect = document.body.style.webkitUserSelect = document.body.style.userSelect = 'none';
+      // THIS BREAKS THINGS, IF YOU FIND YOU NEED IT AGAIN THEN ADD SOMETHING AT THE END TO SET THEM BACK TO WHATEVER THEY WERE BEFORE THIS CALL
+      // document.body.style.mozUserSelect = document.body.style.webkitUserSelect = document.body.style.userSelect = 'none';
       xyfromevent(evt, this);
       this.SCREEN.dragStart = CTX.transformedPoint(this.SCREEN.lastX, this.SCREEN.lastY);
       this.SCREEN.dragged = false;
