@@ -127,6 +127,23 @@ const upload_or_save_item = function(mod, container, current_type, path, obj, D)
     }
 }
 
+export function set_by_path(obj,path,new_sub_obj) {
+    let pathspl = path.replace(/^_./,'').split('.');
+    while (pathspl.length > 0) {
+        let firstp = pathspl.shift();
+        if (obj.hasOwnProperty(firstp)) {
+            if (pathspl.length == 0) {
+                obj[firstp] = new_sub_obj;
+            } else {
+                obj = obj[firstp]
+            }
+        } else {
+            console.log(obj,'does not contain',firstp)
+            return;
+        }
+    }
+}
+
 const by_path = function(container, topdef, path, mod, newval, D) {
     let current_def = topdef;
     let changed = true;
@@ -332,5 +349,5 @@ export function download(filename,x) {
     document.body.appendChild(element);
     element.click();
     document.body.removeChild(element);
-  }
+}
   
