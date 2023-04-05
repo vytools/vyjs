@@ -88,9 +88,9 @@ const toggle_by_li = function(li,toggle) {
     }
 }
 
-const create_object_of_type = function(typ, definitions) {
+export function create_object_of_type(typ, definitions, options) {
     if (native.hasOwnProperty(typ)) {
-        return native[typ].default;
+        return (options && options.length>0) ? options[0] : native[typ].default;
     } else if (definitions.hasOwnProperty(typ)) {
         let obj = {};
         definitions[typ].forEach(d => {
@@ -99,11 +99,11 @@ const create_object_of_type = function(typ, definitions) {
                 let n = parseInt(d.length);
                 if (~isNaN(n)) {
                     for (var ii = 0; ii < n; ii++) {
-                        obj[d.name].push(create_object_of_type(d.type, definitions));
+                        obj[d.name].push(create_object_of_type(d.type, definitions, d.options));
                     }
                 }
             } else {
-                obj[d.name] = create_object_of_type(d.type, definitions);
+                obj[d.name] = create_object_of_type(d.type, definitions, d.options);
             }
         })
         return obj;
@@ -188,7 +188,7 @@ const by_path = function(container, topdef, path, mod, newval, D) {
                     if (current_def.name == p) {
                         if (last || !exists) {
                             if (mod == 'rmv') {} else { // can't remove an object only an array item
-                                let o = create_object_of_type(current_def.type, D.definitions);
+                                let o = create_object_of_type(current_def.type, D.definitions, current_def.options);
                                 let is_array = current_def.hasOwnProperty('length');
                                 if (mod == 'mod' && last) {
                                     subobj[p] = newval;
