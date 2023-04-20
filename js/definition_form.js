@@ -269,7 +269,7 @@ const create_new_form = function(container, topdef, D) {
 
     const update = (ev,inp) => {
         if (native.hasOwnProperty(inp.dataset.ntyp)) {
-            let val = native[inp.dataset.ntyp].op(inp.value);
+            let val = native[inp.dataset.ntyp].op((inp.dataset.ntyp == 'bool') ? inp.checked : inp.value);
             by_path(container, topdef, inp.dataset.pth, 'mod', val, D);
         }
     }
