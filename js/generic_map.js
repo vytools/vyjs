@@ -176,7 +176,7 @@ export function setup_generic_map(contentdiv, DATA, RenderFuncs) {
   let CTX = null;
   contentdiv.appendChild(CANVAS);
   contentdiv.insertAdjacentHTML('beforeend',`
-  <div class="toggleable form-group" style="position: absolute; bottom:30px; right:10px; width:200px">
+  <div class="toggleable form-group" style="position: absolute; bottom:30px; right:10px; width:200px; max-height:calc(100% - 50px);overflow-y:auto">
   </div>`);
   let TOGGLEABLE = contentdiv.querySelector('div.toggleable');
 
