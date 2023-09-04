@@ -1,5 +1,7 @@
-// chart.js should be loaded first e.g. this has been tested:
-// import 'https://cdnjs.cloudflare.com/ajax/libs/Chart.js/2.7.2/Chart.bundle.min.js'
+// chart.js can be loaded first, here is a fallback
+if (!window.Chart) {
+  import('./chartjs2p7p2.js').then(exports => {});
+}
 
 const chart_transform = function(xyA, xyB, chart, typ, cb) {
   if (!(xyA && xyB)) return;
