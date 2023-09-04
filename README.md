@@ -1,8 +1,8 @@
 # vyjs
 A group of javascript modules to make creating user interfaces simpler
-You can use jsdelivr.net to get the latest modules. For example the module generic_map.js can be accessed in your javascript with (assuming a commit tag of 2.0.7 exists for this repo)
+You can use jsdelivr.net to get the latest modules. For example the module generic_map.js can be accessed in your javascript with (assuming a commit tag of 2.0.8 exists for this repo)
 
-import { setup_generic_map } from "https://cdn.jsdelivr.net/gh/vytools/vyjs@v2.0.7/js/generic_map.js";
+import { setup_generic_map } from "https://cdn.jsdelivr.net/gh/vytools/vyjs@v2.0.8/js/generic_map.js";
 
 
 ## generic_map.js
