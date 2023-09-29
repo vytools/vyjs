@@ -88,22 +88,28 @@ const toggle_by_li = function(li,toggle) {
     }
 }
 
-export function create_object_of_type(typ, definitions, options) {
-    if (native.hasOwnProperty(typ)) {
-        return (options && options.length>0) ? options[0] : native[typ].default;
-    } else if (definitions.hasOwnProperty(typ)) {
+export function create_object_of_type(optdef, definitions) {
+    if (native.hasOwnProperty(optdef.type)) {
+        if (optdef.hasOwnProperty('default')) {
+            return optdef.default;
+        } else if (optdef.hasOwnProperty('options') && optdef.options.length>0) {
+            return optdef.options[0];
+        } else {
+            return native[optdef.type].default;
+        }
+    } else if (definitions.hasOwnProperty(optdef.type)) {
         let obj = {};
-        definitions[typ].forEach(d => {
+        definitions[optdef.type].forEach(d => {
             if (d.hasOwnProperty('length')) {
                 obj[d.name] = [];
                 let n = parseInt(d.length);
                 if (~isNaN(n)) {
                     for (var ii = 0; ii < n; ii++) {
-                        obj[d.name].push(create_object_of_type(d.type, definitions, d.options));
+                        obj[d.name].push(create_object_of_type(d, definitions));
                     }
                 }
             } else {
-                obj[d.name] = create_object_of_type(d.type, definitions, d.options);
+                obj[d.name] = create_object_of_type(d, definitions);
             }
         })
         return obj;
@@ -188,7 +194,7 @@ const by_path = function(container, topdef, path, mod, newval, D) {
                     if (current_def.name == p) {
                         if (last || !exists) {
                             if (mod == 'rmv') {} else { // can't remove an object only an array item
-                                let o = create_object_of_type(current_def.type, D.definitions, current_def.options);
+                                let o = create_object_of_type(current_def, D.definitions);
                                 let is_array = current_def.hasOwnProperty('length');
                                 if (mod == 'mod' && last) {
                                     subobj[p] = newval;
@@ -279,7 +285,6 @@ const create_new_form = function(container, topdef, D) {
 }
 
 const recreate_new_form_with_visible = function(container, topdef, path, D) {
-    console.log('recreate_new_form_with_visible',path);
     create_new_form(container, topdef, D);
     container.querySelectorAll('div[data-name]').forEach(el => {
         if (path.startsWith(el.dataset.name)) el.classList.remove('hide');
@@ -324,7 +329,7 @@ export function create(container, definitions, def, obj, functions) {
     }
     let D = {
         definitions:definitions,
-        object:obj || create_object_of_type(def,definitions),
+        object:obj || create_object_of_type({type:def},definitions),
         functions:functions
     };
     while(container.firstChild){ container.removeChild(container.firstChild);}
