@@ -1,4 +1,7 @@
-import { dynamic_chart } from './chartjs.js';
+// Plotly.js can be loaded first, here is a fallback
+if (!window.Plotly) {
+  import('./plotly-2.26.2.min.js').then(exports => {});
+}
 
 const make_problem_table = function(problem) {
   let inputs = '', outputs = '';
@@ -11,7 +14,7 @@ const make_problem_table = function(problem) {
   problem.points_possible = 0;
   for (const [key,val] of Object.entries(problem.outputs)) {
     let points = `<td>${val.points_possible}</td>`;
-    if (val.points_earned) {
+    if (val.hasOwnProperty('points_earned')) {
       problem.points_earned += parseFloat(val.points_earned);
       problem.points_possible += parseFloat(val.points_possible);
       let cls = (val.points_earned == val.points_possible) ? 'table-success' : 'table-danger';
@@ -31,6 +34,8 @@ const make_problem_table = function(problem) {
     let cls = (problem.points_possible == problem.points_earned) ? 'bg-success' :
               (problem.points_earned == 0) ? 'bg-danger' : 'bg-warning';
     badge = `<span class="badge ${cls}" style="float:right">${problem.points_earned} earned / ${problem.points_possible} possible</span>`;
+  } else {
+    badge = `<span class="badge bg-warning" style="float:right">No points awarded</span>`;
   }
   return `
     <table class="table border border-dark">
@@ -86,7 +91,9 @@ export function process_results(stdout, results, elmnt, is_offline) {
       elmnt.insertAdjacentHTML('beforeend','<h4 style="text-align:center">Plots</h4>');
       for (var i = 0; i < results.plots.length; i++) {
         // TODO is there any way at all to DOMPurify this?  
-        dynamic_chart(results.plots[i], `chart${i}`, elmnt, ()=>{});
+        let plotly_div = document.createElement('div');
+        elmnt.appendChild(plotly_div);  
+        Plotly.newPlot(plotly_div, results.plots[i].data || [], results.plots[i].layout || {}, results.plots[i].config || {});
       }
     }
 }

@@ -177,9 +177,9 @@ Tools for resizable divs, use the \<flex\>, \<flexitem\> and \<flexresizer\> tag
 
 In progress...
 
-## chartjs.js
+## plotly-X.XX.min.js
 
-In progress...
+Copy of plotly js
 
 ## definition_form.js definition_form.css
 
