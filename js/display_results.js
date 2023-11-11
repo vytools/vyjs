@@ -1,7 +1,4 @@
-// Plotly.js can be loaded first, here is a fallback
-if (!window.Plotly) {
-  import('./plotly-2.26.2.min.js').then(exports => {});
-}
+import "./plotly-2.26.2.min.js"
 
 const make_problem_table = function(problem) {
   let inputs = '', outputs = '';
