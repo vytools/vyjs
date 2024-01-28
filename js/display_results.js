@@ -1,10 +1,15 @@
 import "./plotly-2.26.2.min.js"
+try {
+  import('https://cdnjs.cloudflare.com/ajax/libs/dompurify/2.3.0/purify.min.js').then();
+} catch(err) {
+}
 
 const make_problem_table = function(problem) {
   let inputs = '', outputs = '';
   if (problem.inputs) {
     for (const [key,val] of Object.entries(problem.inputs)) {
-      inputs += `<tr><td>${key}</td><td>${JSON.stringify(val)}</td></tr>`;
+      let v = JSON.stringify(val);
+      inputs += `<tr><td style="word-wrap: break-word; max-width: 150px;" title="${v}">${key}</td><td>${v}</td></tr>`;
     }
   }
   problem.points_earned = 0;
@@ -20,8 +25,8 @@ const make_problem_table = function(problem) {
     if (val.points_possible > 0) {
       outputs += `<tr>
           <td>${key}</td>
-          <td>${val.expected}</td>
-          <td>${val.actual}</td><td>${val.tolerance}</td>${points}
+          <td style="word-wrap: break-word; max-width: 150px;" title="${val.expected}">${val.expected}</td>
+          <td style="word-wrap: break-word; max-width: 150px;" title="${val.actual}">${val.actual}</td><td>${val.tolerance}</td>${points}
         </tr>`;
     }
 
