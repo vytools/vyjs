@@ -175,7 +175,7 @@ export function setup_generic_map(contentdiv, DATA, RenderFuncs) {
   let CANVAS = document.createElement('canvas');
   let CTX = null;
   if (!DATA.meauring_tool) {
-    DATA.meauring_tool = {
+    DATA.measuring_tool = {
       draw_toggle:'Measuring Tool',
       _draw_toggle_off_:true,
       points:{draw_type:'polygon',points:[{x:0,y:0},{x:0,y:0}],lineWidth:3,strokeStyle:'black'},
