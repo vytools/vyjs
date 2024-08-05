@@ -14,7 +14,7 @@ def server(directory=BASEPATH, port=80):
   class VyJSHTTPRequestHandler(SimpleHTTPRequestHandler):
     def do_GET(self):
       if self.path == '/':
-        sendx(self, 'text/html', '<p>put path to file e.g. http::/localhost:{}/main.html</p>'.format(port).encode())
+        sendx(self, 'text/html', '<p>put path to file e.g. http://localhost:{}/main.html</p>'.format(port).encode())
       else:
         exclude = set(['.git','.hg','.pycache','node_modules'])
         for root, dirs, files in os.walk(directory, topdown=True):

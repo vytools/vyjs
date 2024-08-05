@@ -12,21 +12,27 @@ const native = {
 }
 const INITIALCHAR = '_';
 
-const save_upload_buttons = function(accumulated_name, vertical, deletable) {
+const save_upload_buttons = function(accumulated_name, vertical, deletable, isnative) {
     let vrt = (vertical) ? "d_f_d_pt" : "";
     let sname = accumulated_name.replace(INITIALCHAR+'.','');
     let dbut = (!deletable) ? '' : 
         `<button class="btn d_f_d_xs ${vrt} btn-dark d_f_d_act" title="Remove ${sname}" data-rmv="${accumulated_name}">-</button>`;
-    return `<button class="btn d_f_d_xs ${vrt} btn-dark d_f_d_act" title="Upload replacement for ${sname}" data-upl="${accumulated_name}">&uarr;</button>
-    <button class="btn d_f_d_xs ${vrt} btn-dark d_f_d_act" title="Save ${sname}" data-sav="${accumulated_name}">&darr;</button>${dbut}`;
+    if (!isnative) {
+        return `<button class="btn d_f_d_xs ${vrt} btn-dark d_f_d_act" title="Upload replacement for ${sname}" data-upl="${accumulated_name}">&uarr;</button>
+                <button class="btn d_f_d_xs ${vrt} btn-dark d_f_d_act" title="Save ${sname}" data-sav="${accumulated_name}">&darr;</button>` + dbut;
+    } else {
+        return dbut;
+    }
 }
 
-const create_fields = function(topcontainer, definitions, topdef, obj, accumulated_name, deletable, ignore) {
+const create_fields = function(topcontainer, definitions, topdef, obj, accumulated_name, deletable, hide_fields) {
     let toplevel = accumulated_name == INITIALCHAR;
     let isdeleteable = deletable >= 0;
+    let isnative = native.hasOwnProperty(topdef.type);
+    let isindef = definitions.hasOwnProperty(topdef.type);
     let labl = (isdeleteable || toplevel) ? 
-        `<div style="display:flex;flex-flow:column">${save_upload_buttons(accumulated_name, true, isdeleteable)}</div>` : '';
-    if (native.hasOwnProperty(topdef.type)) {
+        `<div style="display:flex;flex-flow:column">${save_upload_buttons(accumulated_name, true, isdeleteable, isnative)}</div>` : '';
+    if (isnative) {
         let n = native[topdef.type];
         topcontainer.classList.add('row');
         let val = (obj == null) ? n.default : obj;
@@ -39,21 +45,25 @@ const create_fields = function(topcontainer, definitions, topdef, obj, accumulat
             inp += `<input type="${n.type}" data-ntyp="${topdef.type}" data-pth="${accumulated_name}" class="form-control-sm ${n.cl}" ${n.attributes} ${valstr}></div>`;
         }
         let txt = `<label class="col-sm-6" title="${topdef.description || ''}">${labl + (topdef.name || '')}</label>${inp}`
-        
         topcontainer.insertAdjacentHTML('beforeend',txt);
-    } else if (definitions.hasOwnProperty(topdef.type)) {
+    } else if (isindef) {
         topcontainer.insertAdjacentHTML('beforeend',`<div class="d_f_d_0"><div class="d_f_d_1">${labl}</div><div class="d_f_d_2"></div></div>`);
         let nodes = topcontainer.querySelectorAll('div.d_f_d_2');
         let container = nodes[nodes.length-1];
-    
+        let keys = definitions[topdef.type].map(d => d.name);
+        if (obj && typeof(obj) == 'object') {
+            Object.keys(obj).forEach(key => {
+                if (keys.indexOf(key) == -1) delete obj[key];
+            })
+        }
         definitions[topdef.type].forEach(d => {
             let isarray = d.hasOwnProperty('length');
             let val = (obj != null && obj.hasOwnProperty(d.name)) ? obj[d.name] : null;
             let n = 0, unlimited = d.length == '?';
             let accname = accumulated_name + '.' + d.name;
             let subcontainer = container;
-            if (ignore.filter(ig => accname.match(ig)).length == 0) {
-                if (definitions.hasOwnProperty(d.type)) {
+            if (hide_fields.filter(ig => accname.match(ig)).length == 0) {
+                if (definitions.hasOwnProperty(d.type) || isarray) {
                     let svup = (isarray) ? '' : save_upload_buttons(accname,false)+'&nbsp;';
                     let nn = ((unlimited) ? '<button class="btn d_f_d_xs btn-dark d_f_d_a">+</button>&nbsp;' : '') + svup + d.name;
                     container.insertAdjacentHTML('beforeend',`<label class="d_f_d_t" data-name="${accname}">${nn}</label>
@@ -67,11 +77,11 @@ const create_fields = function(topcontainer, definitions, topdef, obj, accumulat
                         subcontainer.insertAdjacentHTML('beforeend',`<p>Problem with ${JSON.stringify(d)}`);
                     } else {
                         for (var ii = 0; ii < n; ii++) {
-                            create_fields(subcontainer, definitions, d, (val.length > ii) ? val[ii] : null,accname + '.' + ii,(unlimited) ? ii : -1, ignore);
+                            create_fields(subcontainer, definitions, d, (val.length > ii) ? val[ii] : null,accname + '.' + ii,(unlimited) ? ii : -1, hide_fields);
                         }
                     }
                 } else {
-                    create_fields(subcontainer, definitions, d, val, accname, -1, ignore);
+                    create_fields(subcontainer, definitions, d, val, accname, -1, hide_fields);
                 }
             }
         });
@@ -214,8 +224,8 @@ const by_path = function(container, topdef, path, mod, newval, D) {
                                 if (D.functions.on_change && changed) D.functions.on_change(path,newval,D.object);
                             }
                             return;
-                        } else if (D.definitions.hasOwnProperty(current_def.type)) {
-                            defs = D.definitions[current_def.type];
+                        } else if (subobj.hasOwnProperty(p)) {
+                            if (D.definitions.hasOwnProperty(current_def.type)) defs = D.definitions[current_def.type];
                             subobj = subobj[p];
                         } else {
                             console.log('fail 2 in by_path')
@@ -237,8 +247,8 @@ const create_new_form = function(container, topdef, D) {
         upload_data(ev, container, topdef, ev.target.dataset.path, D);
     });
 
-    let ignore = D.functions.ignore || [];
-    create_fields(f, D.definitions, topdef, D.object, INITIALCHAR, -1, ignore);
+    let hide_fields = D.functions.hide_fields || [];
+    create_fields(f, D.definitions, topdef, D.object, INITIALCHAR, -1, hide_fields);
     container.querySelectorAll("label.d_f_d_t").forEach(li => {
         li.addEventListener('click', (ev) => { 
             ev.stopPropagation();
