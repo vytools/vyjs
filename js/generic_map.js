@@ -174,7 +174,7 @@ export function center_map_with_dimensions(ctx, xc, yc, width,height) { // x, y,
 export function setup_generic_map(contentdiv, DATA, RenderFuncs) {
   let CANVAS = document.createElement('canvas');
   let CTX = null;
-  if (!DATA.meauring_tool) {
+  if (!DATA.measuring_tool) {
     DATA.measuring_tool = {
       draw_toggle:'Measuring Tool',
       _draw_toggle_off_:true,
@@ -212,27 +212,27 @@ export function setup_generic_map(contentdiv, DATA, RenderFuncs) {
   CANVAS.addEventListener('mousedown',(e) => { 
     if (DATA.disable_map_events) {
       return
-    } else if (e.buttons == 1 && e.shiftKey && DATA.meauring_tool && !DATA.meauring_tool._draw_toggle_off_) {
+    } else if (e.buttons == 1 && e.shiftKey && DATA.measuring_tool && !DATA.measuring_tool._draw_toggle_off_) {
       let p = CTX.eventToPosition(e); p.y = -p.y;
-      DATA.meauring_tool.active = true;
-      DATA.meauring_tool.points.points[0] = p;
-      DATA.meauring_tool.points.points[1] = p;
+      DATA.measuring_tool.active = true;
+      DATA.measuring_tool.points.points[0] = p;
+      DATA.measuring_tool.points.points[1] = p;
     }
     CTX.handleMouseDown(e) 
   }, false);
   CANVAS.addEventListener('mousemove',(e) => { 
     if (DATA.disable_map_events) {
       return;
-    } else if (e.buttons == 1 && e.shiftKey && DATA.meauring_tool && DATA.meauring_tool.active && !DATA.meauring_tool._draw_toggle_off_) {
-      DATA.meauring_tool.points.points[1] = CTX.eventToPosition(e);
-      DATA.meauring_tool.points.points[1].y = -DATA.meauring_tool.points.points[1].y;
-      let p = DATA.meauring_tool.points.points;
+    } else if (e.buttons == 1 && e.shiftKey && DATA.measuring_tool && DATA.measuring_tool.active && !DATA.measuring_tool._draw_toggle_off_) {
+      DATA.measuring_tool.points.points[1] = CTX.eventToPosition(e);
+      DATA.measuring_tool.points.points[1].y = -DATA.measuring_tool.points.points[1].y;
+      let p = DATA.measuring_tool.points.points;
       let a = Math.atan2(p[1].y-p[0].y,p[1].x-p[0].x);
       let d = Math.hypot(p[1].y-p[0].y,p[1].x-p[0].x);
-      DATA.meauring_tool.text.x = p[1].x;
-      DATA.meauring_tool.text.y = p[1].y;
-      DATA.meauring_tool.text.textAlign = (Math.abs(a)>Math.PI/2) ? 'right' : 'left';
-      DATA.meauring_tool.text.fillText = d.toFixed(3);
+      DATA.measuring_tool.text.x = p[1].x;
+      DATA.measuring_tool.text.y = p[1].y;
+      DATA.measuring_tool.text.textAlign = (Math.abs(a)>Math.PI/2) ? 'right' : 'left';
+      DATA.measuring_tool.text.fillText = d.toFixed(3);
       draw(CTX, DATA, null);
     } else if (CTX.handleMouseMove(e)) {
       draw(CTX, DATA, null);
@@ -242,8 +242,8 @@ export function setup_generic_map(contentdiv, DATA, RenderFuncs) {
   }, false);
   CANVAS.addEventListener('mouseup',(e) => { 
     // if (DATA.disable_map_events) return;
-    if (DATA.meauring_tool && !DATA.meauring_tool._draw_toggle_off_ && DATA.meauring_tool.active) {
-      DATA.meauring_tool.active = false;
+    if (DATA.measuring_tool && !DATA.measuring_tool._draw_toggle_off_ && DATA.measuring_tool.active) {
+      DATA.measuring_tool.active = false;
       draw(CTX, DATA, null);
     }
     CTX.handleMouseUp(e) 
