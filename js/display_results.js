@@ -1,8 +1,4 @@
 import "./plotly-2.26.2.min.js"
-try {
-  // import('https://cdnjs.cloudflare.com/ajax/libs/dompurify/3.1.6/purify.min.js').then();
-} catch(err) {
-}
 
 const make_problem_table = function(problem) {
   let inputs = '', outputs = '';
@@ -66,7 +62,7 @@ const make_problem_table = function(problem) {
 }
 
 export function process_results(stdout, results, elmnt, is_offline) {
-    if (!DOMPurify) DOMPurify = {sanitize:(v) => { return v;}};
+    if (!window.hasOwnProperty('DOMPurify')) window.DOMPurify = {sanitize:(v) => { return v;}};
     let points_earned =0, points_possible = 0, html = ''
     if (stdout) {
       html = `<h4 style="text-align:center">Stdout</h4>
