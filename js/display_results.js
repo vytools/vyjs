@@ -1,6 +1,6 @@
 import "./plotly-2.26.2.min.js"
 try {
-  import('https://cdnjs.cloudflare.com/ajax/libs/dompurify/2.3.0/purify.min.js').then();
+  // import('https://cdnjs.cloudflare.com/ajax/libs/dompurify/3.1.6/purify.min.js').then();
 } catch(err) {
 }
 
@@ -69,8 +69,8 @@ export function process_results(stdout, results, elmnt, is_offline) {
     if (!DOMPurify) DOMPurify = {sanitize:(v) => { return v;}};
     let points_earned =0, points_possible = 0, html = ''
     if (stdout) {
-        html = `<h4 style="text-align:center">Stdout</h4>
-            <div class="alert alert-secondary"><pre>${stdout}</pre></div>`;
+      html = `<h4 style="text-align:center">Stdout</h4>
+        <pre class="alert alert-secondary">${stdout}</pre>`;
     }
     let results_html = '';
     let offline = `<a class="btn btn-dark btn-sm" onclick="vysubmit()">Submit to vy.tools for grading</a>`;

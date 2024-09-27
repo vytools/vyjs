@@ -23,6 +23,13 @@ let draw_arc = function(arc, ctx) {
     let cx = x0 + Math.cos(q0+dq)*r;
     let cy = y0 + Math.sin(q0+dq)*r;
     ctx.arc(cx, cy, r, q0-dq, q0-dq+arc.L*k, k*arc.L < 0);
+  } else if (Math.abs(k) > 1e-12) {
+    ctx.moveTo(x0, y0);
+    let n = 10, cq = Math.cos(q0), sq = Math.sin(q0);
+    for (var ii = 1; ii <= n; ii++) {
+      let q = q0 + k*ii/n*arc.L;
+      ctx.lineTo(x0 + (Math.sin(q)-sq)/k, y0 + (cq-Math.cos(q))/k);
+    }
   } else {
     ctx.moveTo(x0, y0);
     ctx.lineTo(x0 + arc.L*Math.cos(q0), y0 + arc.L*Math.sin(q0));
