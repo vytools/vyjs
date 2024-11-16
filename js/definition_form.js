@@ -258,8 +258,6 @@ const create_new_form = function(container, topdef, D) {
     });
     container.querySelectorAll("button.d_f_d_act").forEach(button => {
         button.addEventListener('click', (ev) => {
-            ev.stopPropagation();
-            ev.preventDefault();
             let b = ev.target.closest('button');
             if (b) {
                 let act = (b.dataset.hasOwnProperty('rmv')) ? 'rmv' : 
