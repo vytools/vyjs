@@ -12,6 +12,28 @@ const native = {
 }
 const INITIALCHAR = '_';
 
+const isObject = function(item) {
+    return (item && typeof item === 'object' && !Array.isArray(item));
+}
+   
+export function merge_deep(target, ...sources) {
+    if (!sources.length) return target;
+    const source = sources.shift();
+    if (isObject(target) && isObject(source)) {
+        for (const key in source) {
+            if (isObject(source[key])) {
+                if (!target[key]) Object.assign(target, { [key]: {} });
+                target[key] = merge_deep(target[key], source[key]);
+            } else {
+                Object.assign(target, { [key]: source[key] });
+            }
+        }
+    } else if (isObject(source)) {
+        return source;
+    }
+    return merge_deep(target, ...sources);
+}
+
 const save_upload_buttons = function(accumulated_name, vertical, deletable, isnative) {
     let vrt = (vertical) ? "d_f_d_pt" : "";
     let sname = accumulated_name.replace(INITIALCHAR+'.','');
@@ -309,10 +331,11 @@ const upload_data = function(event, container, topdef, path, D) {
         let data = JSON.parse((isbinary) ? new Uint8Array(reader.result) : reader.result);
         let current_def = by_path(container, topdef, path, 'pat', null, D);
         if (D.functions.on_load) data = D.functions.on_load(current_def, path, data);
-        // TODO VALIDATE?
         if (path == INITIALCHAR) {
+            data = merge_deep(create_object_of_type(topdef, D.definitions), data);
             reload(container, topdef, data, D);
         } else {
+            data = merge_deep(create_object_of_type(current_def, D.definitions), data);
             by_path(container, topdef, path, 'mod', data, D);
             recreate_new_form_with_visible(container, topdef, path, D);
         }
@@ -335,14 +358,12 @@ export function create(container, definitions, def, obj, functions) {
         console.log(`Definitions do not contain "${def}"`);
         return;
     }
-    let D = {
-        definitions:definitions,
-        object:obj || create_object_of_type({type:def},definitions),
-        functions:functions
-    };
+    let object = obj || {};
+    let topdef = {type:def};
+    object = merge_deep(create_object_of_type(topdef, definitions), object);
+    let D = {definitions, object, functions};
     while(container.firstChild){ container.removeChild(container.firstChild);}
     container.insertAdjacentHTML('beforeend',`<div class="data_form_top_div" style="flex:1"></div>`);
-    let topdef = {type:def};
     const reload_ = function(data) {
         if (D.functions.on_load) data = D.functions.on_load(topdef,INITIALCHAR,data);
         reload(container, topdef, data, D);
