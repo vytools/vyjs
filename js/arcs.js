@@ -1,6 +1,5 @@
 const SMALL_ANGLE = 0.001;
-export const VERY_SMALL_CURVATURE = 1e-6;
-const SMALL = 1e-9;
+export const SMALL = 1e-8;
 export const EPSILON = 1e-12;
 
 export function pimod(q) {
@@ -24,7 +23,7 @@ export function arc_state(arc, L) {
     let cq0 = Math.cos(arc.q0);
     let sq0 = Math.sin(arc.q0);
     let x = 0, y = 0;
-    if (Math.abs(arc.k) < VERY_SMALL_CURVATURE) {
+    if (Math.abs(arc.k) < SMALL) {
         x = arc.x0 + cq0*L;
         y = arc.y0 + sq0*L;
     } else if (Math.abs(arc.k * L) < SMALL_ANGLE) {
@@ -96,7 +95,7 @@ export function arc_from_states(xyq0, xyq1) {
       theta = -pimod(Math.atan2(-dy, -dx) - xyq0.q);
     }
     let k = 2*Math.sin(theta)/chord;
-    let L = (Math.abs(k) < VERY_SMALL_CURVATURE) ? chord : theta0*2/k;
+    let L = (Math.abs(k) < SMALL) ? chord : theta0*2/k;
     return {x0:xyq0.x, y0:xyq0.y, q0:xyq0.q, k, L};
   }
 }
@@ -331,7 +330,7 @@ const percent_along_lineseg = function(x0, y0, x1, y1, x, y) {
 
 export function percent_along_arc(arc, x, y) {
   let final_state = arc_state(arc, arc_length(arc));
-  if (Math.abs(arc.k) < VERY_SMALL_CURVATURE) {
+  if (Math.abs(arc.k) < SMALL) {
     return percent_along_lineseg(arc.x0, arc.y0, final_state.x, final_state.y, x, y);
   }
   let center = arc_center(arc);
