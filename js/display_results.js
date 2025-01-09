@@ -36,8 +36,8 @@ const make_problem_table = function(problem) {
     badge = `<span class="badge bg-warning" style="float:right">No points awarded</span>`;
   }
   return `
-    <table class="table border border-dark">
-      <thead class="table-dark">
+    <table class="table border table-light border-dark">
+      <thead class="table-secondary">
         <td>${problem.name}${badge}</td>
       </thead>
       <tbody>
