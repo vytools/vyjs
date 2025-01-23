@@ -1,4 +1,4 @@
-import "./plotly-2.26.2.min.js"
+import "./plotly-3.0rc2.min.js"
 
 const make_problem_table = function(problem) {
   let inputs = '', outputs = '';
@@ -91,7 +91,11 @@ export function process_results(stdout, results, elmnt, is_offline) {
         // TODO is there any way at all to DOMPurify this?  
         let plotly_div = document.createElement('div');
         elmnt.appendChild(plotly_div);  
-        Plotly.newPlot(plotly_div, results.plots[i].data || [], results.plots[i].layout || {}, results.plots[i].config || {});
+        if (window.Plotly) {
+          Plotly.newPlot(plotly_div, results.plots[i].data || [], results.plots[i].layout || {}, results.plots[i].config || {});
+        } else {
+          console.log('no plotly')
+        }
       }
     }
 }
