@@ -1,4 +1,4 @@
-import "./plotly-3.0rc2.min.js"
+import "./plotly-3.0.1.min.js"
 
 const make_problem_table = function(problem) {
   let inputs = '', outputs = '';
