@@ -154,10 +154,10 @@ export function biarc(xyq0, xyq1) {
     }
   }
 
-const add_arc = function(arc, lineWidth, color) {
+const add_arc = function(arc, stroke_width, color) {
   arc.draw_type = 'arc';
-  arc.lineWidth = lineWidth;
-  arc.strokeStyle = color;
+  arc.stroke_width = stroke_width;
+  arc.stroke = color;
   return arc;
 }
 
@@ -176,7 +176,7 @@ export class ArcPath {
       let xyq0 = xyq[ii];
       let xyq1 = xyq[(ii + 1) % xyq.length];
       let node = {xyq:xyq0, arcs:[], 
-        handle:{draw_type:'circle', x:xyq0.x, y:xyq0.y, radius:8, scaleSizeToScreen:true, fillStyle:this.arc_color}
+        handle:{draw_type:'circle', x:xyq0.x, y:xyq0.y, radius:8, scale_with_zoom:true, fill:this.arc_color}
       };
       if (ii +1 < xyq.length || this.is_closed_loop) {
         biarc(xyq0, xyq1).forEach(arc => {
@@ -301,13 +301,13 @@ export function arc_center(arc) {
   return {x:arc.x0 - Math.sin(arc.q0)/arc.k, y:arc.y0 + Math.cos(arc.q0)/arc.k};
 } 
 
-export function draw_arcs(arcs, offset, lineWidth, strokeStyle) {
+export function draw_arcs(arcs, offset, stroke_width, stroke) {
   return arcs.map(a => {
     let x0 = a.x0 - offset*Math.sin(a.q0)
     let y0 = a.y0 + offset*Math.cos(a.q0)
     let k = (Math.abs(a.k) < 1e-6) ? 0 : (1/((1/a.k)-offset))
     let L = (k==0) ? a.L : (a.k*a.L)/k;
-    return {draw_type:'arc', x0, y0, q0:a.q0, k, L, lineWidth, strokeStyle}
+    return {draw_type:'arc', x0, y0, q0:a.q0, k, L, stroke_width, stroke}
   });
 }
 

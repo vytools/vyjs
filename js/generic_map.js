@@ -9,9 +9,9 @@ const angle_mod = function(q) {
 
 let draw_arc = function(arc, ctx) {
   let trnsfrm = ctx.get_transform();
-  if (arc.lineWidth) ctx.lineWidth = arc.lineWidth / trnsfrm.a;
-  if (arc.fillStyle) ctx.fillStyle = arc.fillStyle;
-  if (arc.strokeStyle) ctx.strokeStyle = arc.strokeStyle
+  if (arc.stroke_width) ctx.lineWidth = arc.stroke_width / trnsfrm.a;
+  if (arc.fill) ctx.fillStyle = arc.fill;
+  if (arc.stroke) ctx.strokeStyle = arc.stroke
   let x0 = arc.x0 || 0;
   let y0 = arc.y0 || 0;
   let q0 = arc.q0 || 0;
@@ -34,8 +34,8 @@ let draw_arc = function(arc, ctx) {
     ctx.moveTo(x0, y0);
     ctx.lineTo(x0 + arc.L*Math.cos(q0), y0 + arc.L*Math.sin(q0));
   }
-  if (arc.fillStyle) ctx.fill();
-  if (arc.strokeStyle) ctx.stroke();
+  if (arc.fill) ctx.fill();
+  if (arc.stroke) ctx.stroke();
 }
 
 let draw_image = function(img, ctx) {
@@ -49,18 +49,18 @@ let draw_image = function(img, ctx) {
 let draw_polygon = function(poly, ctx) {
   if (poly.points.length < 2) return;
   let trnsfrm = ctx.get_transform();
-  if (poly.lineWidth) ctx.lineWidth = poly.lineWidth / trnsfrm.a;
-  if (poly.fillStyle) ctx.fillStyle = poly.fillStyle;
-  if (poly.strokeStyle) ctx.strokeStyle = poly.strokeStyle
+  if (poly.stroke_width) ctx.lineWidth = poly.stroke_width / trnsfrm.a;
+  if (poly.fill) ctx.fillStyle = poly.fill;
+  if (poly.stroke) ctx.strokeStyle = poly.stroke
   ctx.beginPath();
   ctx.moveTo(poly.points[0].x, poly.points[0].y);
   poly.points.forEach(p => { ctx.lineTo(p.x, p.y); })
-  if (poly.fillStyle) ctx.fill();
-  if (poly.strokeStyle) ctx.stroke();
+  if (poly.fill) ctx.fill();
+  if (poly.stroke) ctx.stroke();
 
   if (poly.circles && poly.circles.radius && poly.circles.color) {
     ctx.fillStyle = poly.circles.color;
-    let r = (poly.circles.scaleSizeToScreen) ? poly.circles.radius/trnsfrm.a : poly.circles.radius;
+    let r = (poly.circles.scale_with_zoom) ? poly.circles.radius/trnsfrm.a : poly.circles.radius;
     poly.points.forEach(p => {
       ctx.beginPath();
       ctx.arc(p.x, p.y, r, 0, 2 * Math.PI, false);
@@ -71,20 +71,20 @@ let draw_polygon = function(poly, ctx) {
 
 let draw_circle = function(circ, ctx) {
   let trnsfrm = ctx.get_transform();
-  let radius = circ.pixradius || circ.radius; // backward compatibility with pixradius instead of scaleSizeToScreen;
-  if (circ.scaleSizeToScreen || circ.pixradius) radius /= trnsfrm.a;
-  if (circ.lineWidth) ctx.lineWidth = (circ.scaleSizeToScreen) ? circ.lineWidth/trnsfrm.a : circ.lineWidth; // * trnsfrm.a;
-  if (circ.fillStyle) ctx.fillStyle = circ.fillStyle;
-  if (circ.strokeStyle) ctx.strokeStyle = circ.strokeStyle;
+  let radius = circ.radius;
+  if (circ.scale_with_zoom) radius /= trnsfrm.a;
+  if (circ.stroke_width) ctx.lineWidth = (circ.scale_with_zoom) ? circ.stroke_width/trnsfrm.a : circ.stroke_width; // * trnsfrm.a;
+  if (circ.fill) ctx.fillStyle = circ.fill;
+  if (circ.stroke) ctx.strokeStyle = circ.stroke;
   ctx.beginPath();
   ctx.arc(circ.x, circ.y, radius, 0, 2 * Math.PI, false);
-  if (circ.fillStyle) ctx.fill();
-  if (circ.strokeStyle || circ.lineWidth) ctx.stroke()
+  if (circ.fill) ctx.fill();
+  if (circ.stroke || circ.stroke_width) ctx.stroke()
 }
 
 let draw_text = function(txt, ctx) {
   let font = txt.font;
-  if (font && txt.scaleSizeToScreen) {
+  if (font && txt.scale_with_zoom) {
     let splt = txt.font.split('px');
     let px = parseInt(splt[0]);
     if (splt.length > 1 && !isNaN(px)) {
@@ -95,12 +95,12 @@ let draw_text = function(txt, ctx) {
     }
   }
   if (font) ctx.font = font; //"30px Arial";
-  if (txt.fillStyle) ctx.fillStyle = txt.fillStyle; //"red";
-  if (txt.strokeStyle) ctx.strokeStyle = txt.strokeStyle; //"red";
-  if (txt.textAlign) ctx.textAlign = txt.textAlign; // "center"
+  if (txt.fill) ctx.fillStyle = txt.fill; //"red";
+  if (txt.stroke) ctx.strokeStyle = txt.stroke; //"red";
+  if (txt.align) ctx.textAlign = txt.align; // "center"
   ctx.scale(1,-1);
-  if (txt.fillText) ctx.fillText(txt.fillText, txt.x, -txt.y);
-  if (txt.strokeText) ctx.fillText(txt.strokeText, txt.x, -txt.y);
+  if (txt.fill_text) ctx.fillText(txt.fill_text, txt.x, -txt.y);
+  if (txt.stroke_text) ctx.strokeText(txt.stroke_text, txt.x, -txt.y);
   ctx.scale(1,-1);
 }
 
@@ -185,8 +185,8 @@ export function setup_generic_map(contentdiv, DATA, RenderFuncs) {
     DATA.measuring_tool = {
       draw_toggle:'Measuring Tool',
       _draw_toggle_off_:true,
-      points:{draw_type:'polygon',points:[{x:0,y:0},{x:0,y:0}],lineWidth:3,strokeStyle:'black'},
-      text:{draw_type:'text',font:'20px Arial',scaleSizeToScreen:true,fillText:'',x:0,y:0,fillStyle:'black'}
+      points:{draw_type:'polygon',points:[{x:0,y:0},{x:0,y:0}],stroke_width:3,stroke:'black'},
+      text:{draw_type:'text',font:'20px Arial',scale_with_zoom:true,fill_text:'',x:0,y:0,fill:'black'}
     }
   }
 
@@ -238,8 +238,8 @@ export function setup_generic_map(contentdiv, DATA, RenderFuncs) {
       let d = Math.hypot(p[1].y-p[0].y,p[1].x-p[0].x);
       DATA.measuring_tool.text.x = p[1].x;
       DATA.measuring_tool.text.y = p[1].y;
-      DATA.measuring_tool.text.textAlign = (Math.abs(a)>Math.PI/2) ? 'right' : 'left';
-      DATA.measuring_tool.text.fillText = d.toFixed(3);
+      DATA.measuring_tool.text.align = (Math.abs(a)>Math.PI/2) ? 'right' : 'left';
+      DATA.measuring_tool.text.fill_text = d.toFixed(3);
       draw(CTX, DATA, null);
     } else if (CTX.handleMouseMove(e)) {
       draw(CTX, DATA, null);
