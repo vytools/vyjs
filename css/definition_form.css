@@ -47,14 +47,34 @@ button.d_f_d_pt {
     margin-top: 3px
 }
 
+button.d_f_d_act {
+    width:24px;
+}
+
 button.d_f_d_xs {
-    padding: .25rem .4rem;
+    padding: .4rem .4rem;
     width:24px;
     font-size: .875rem;
     line-height: .5;
     border-radius: .2rem;
 }
 
+button.d_f_d_xs:focus {
+    outline: none;
+    box-shadow: none;
+}
+
+button.d_f_d_e {
+    padding: .4rem .4rem;
+    font-size: .875rem;
+    line-height: .5;
+    border-radius: .2rem;
+}
+
+button.d_f_d_e:focus {
+    outline: none;
+    box-shadow: none;
+}
 
 .d_f_d_chk:checked {
     background-color:black;

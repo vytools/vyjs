@@ -111,6 +111,7 @@ let definitions = {
     {name: "number", type: "float64", description:"Number"},
     {name: "type", type: "string", description:"Type of map", options:["TypeA","TypeB"]},
     {length:"?", name: "labels", description:"Just a bunch of labels", type: "string"},
+    {name: "ignored_map_with_a_really_long_name", description:"A list of shapes with attributes", type: "definition:Mapx"},
     {name: "map", description:"A list of shapes with attributes", type: "definition:Mapx"}
   ],
   "definition:KeyValue": [
@@ -153,7 +154,8 @@ DEFFORM.reload({
     id:"1",
     attributes:[],
     shapes:[
-      {id:"A",type:'drivable',attributes:[],vertices:[{x:0,y:-10},{x:100,y:-10},{x:100,y:-100},{x:0,y:-100}]}
+      {id:"A",type:'drivable',attributes:[],vertices:[{x:0,y:-10},{x:100,y:-10},{x:100,y:-100},{x:0,y:-100}]},
+      {id:"B",type:'obstacle',attributes:[],vertices:[{x:1,y:-11},{x:90,y:-11},{x:90,y:-90},{x:1,y:-90}]}
     ]
   }
 });

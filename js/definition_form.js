@@ -40,10 +40,19 @@ const save_upload_buttons = function(accumulated_name, vertical, deletable, isna
     let dbut = (!deletable) ? '' : 
         `<button class="btn d_f_d_xs ${vrt} btn-dark d_f_d_act" title="Remove ${sname}" data-rmv="${accumulated_name}">-</button>`;
     if (!isnative) {
-        return `<button class="btn d_f_d_xs ${vrt} btn-dark d_f_d_act" title="Upload replacement for ${sname}" data-upl="${accumulated_name}">&uarr;</button>
-                <button class="btn d_f_d_xs ${vrt} btn-dark d_f_d_act" title="Save ${sname}" data-sav="${accumulated_name}">&darr;</button>` + dbut;
+        let snam = (sname == '_') ? "all data" : "'"+sname+"'";
+        return `<button class="btn d_f_d_xs ${vrt} btn-dark d_f_d_act" title="Upload json file replacement for ${snam}. If you don't know the format for this file, the easiest way to see what it is is to use this interface to populate some values, then click the down button to download and then examine the json file containing the data you entered." data-upl="${accumulated_name}">&uarr;</button>
+                <button class="btn d_f_d_xs ${vrt} btn-dark d_f_d_act" title="Download ${snam} to a json file" data-sav="${accumulated_name}">&darr;</button>` + dbut;
     } else {
         return dbut;
+    }
+}
+
+const expand_label = function(label) {
+    if (label) {
+        return `<button class="btn d_f_d_e btn-dark" title="Expand/collapse this field">${label}</button>`;
+    } else {
+        return '';
     }
 }
 
@@ -66,7 +75,8 @@ const create_fields = function(topcontainer, definitions, topdef, obj, accumulat
         } else {
             inp += `<input type="${n.type}" data-ntyp="${topdef.type}" data-pth="${accumulated_name}" class="form-control-sm ${n.cl}" ${n.attributes} ${valstr}></div>`;
         }
-        let txt = `<label class="col-sm-6" title="${topdef.description || ''}">${labl + (topdef.name || '')}</label>${inp}`
+        let lablname = (isdeleteable) ? '' : (topdef.name || '');
+        let txt = `<label class="col-sm-6" title="${topdef.description || ''}">${labl + lablname}</label>${inp}`
         topcontainer.insertAdjacentHTML('beforeend',txt);
     } else if (isindef) {
         topcontainer.insertAdjacentHTML('beforeend',`<div class="d_f_d_0"><div class="d_f_d_1">${labl}</div><div class="d_f_d_2"></div></div>`);
@@ -87,7 +97,7 @@ const create_fields = function(topcontainer, definitions, topdef, obj, accumulat
             if (hide_fields.filter(ig => accname.match(ig)).length == 0) {
                 if (definitions.hasOwnProperty(d.type) || isarray) {
                     let svup = (isarray) ? '' : save_upload_buttons(accname,false)+'&nbsp;';
-                    let nn = ((unlimited) ? '<button class="btn d_f_d_xs btn-dark d_f_d_a">+</button>&nbsp;' : '') + svup + d.name;
+                    let nn = ((unlimited) ? '<button class="btn d_f_d_xs btn-dark d_f_d_a">+</button>&nbsp;' : '') + svup + expand_label(d.name);
                     container.insertAdjacentHTML('beforeend',`<label class="d_f_d_t" data-name="${accname}">${nn}</label>
                     <div class="d_f_d_s hide" data-name="${accname}"></div>`);
                     subcontainer = container.querySelector(`div[data-name='${accname}']`);
@@ -113,9 +123,9 @@ const create_fields = function(topcontainer, definitions, topdef, obj, accumulat
     }
 }
 
-const toggle_by_li = function(li,toggle) {
+const toggle_visibility = function(li,toggle) {
     if (li) {
-        let div = li.parentElement.querySelector(`div[data-name='${li.dataset.name}']`);
+        let div = li.closest('div').querySelector(`div[data-name='${li.dataset.name}']`);
         if (div) { if (toggle) { div.classList.toggle("hide"); } else { div.classList.remove("hide");} }
     }
 }
@@ -271,24 +281,24 @@ const create_new_form = function(container, topdef, D) {
 
     let hide_fields = D.functions.hide_fields || [];
     create_fields(f, D.definitions, topdef, D.object, INITIALCHAR, -1, hide_fields);
-    container.querySelectorAll("label.d_f_d_t").forEach(li => {
-        li.addEventListener('click', (ev) => { 
+    container.querySelectorAll("button.d_f_d_e").forEach(but => {
+        but.addEventListener('click', (ev) => { 
             ev.stopPropagation();
             ev.preventDefault();
-            toggle_by_li(ev.target,true);
+            let li = ev.target.closest('label.d_f_d_t');
+            if (li) {
+                toggle_visibility(li, true);
+            }
         });
     });
     container.querySelectorAll("button.d_f_d_act").forEach(button => {
         button.addEventListener('click', (ev) => {
-            let b = ev.target.closest('button');
-            if (b) {
-                let act = (b.dataset.hasOwnProperty('rmv')) ? 'rmv' : 
-                    (b.dataset.hasOwnProperty('upl')) ? 'upl' :
-                    (b.dataset.hasOwnProperty('sav')) ? 'sav' : null;
-                let nme = b.dataset[act].replace('_.','');
-                let cntinue = (act == 'rmv') ? confirm(`Are you sure you want to delete "${nme}"?`) : true;
-                if (cntinue && act != null) by_path(container, topdef, b.dataset[act], act, 0, D);
-            }
+            let act = (ev.target.dataset.hasOwnProperty('rmv')) ? 'rmv' : 
+                (ev.target.dataset.hasOwnProperty('upl')) ? 'upl' :
+                (ev.target.dataset.hasOwnProperty('sav')) ? 'sav' : null;
+            let nme = ev.target.dataset[act].replace('_.','');
+            let cntinue = (act == 'rmv') ? confirm(`Are you sure you want to delete "${nme}"?`) : true;
+            if (cntinue && act != null) by_path(container, topdef, ev.target.dataset[act], act, 0, D);
         });
     });
     container.querySelectorAll("button.d_f_d_a").forEach(button => {
@@ -297,9 +307,17 @@ const create_new_form = function(container, topdef, D) {
             ev.preventDefault();
             let li = ev.target.closest('label.d_f_d_t');
             if (li) {
-                toggle_by_li(li,false);
+                toggle_visibility(li, false);
                 by_path(container, topdef, li.dataset.name, 'add', 0, D);
             }
+        });
+    });
+
+    // Clicking <label>s propagates to buttons below, which we don't want
+    container.querySelectorAll("label").forEach(label => {
+        label.addEventListener('click', (ev) => {
+            ev.stopPropagation();
+            ev.preventDefault();
         });
     });
 
