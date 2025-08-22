@@ -1,0 +1,11 @@
+services:
+  server:
+    command: python3 /vyjs/test/testserver.py
+    image: python:3.10-slim
+    ports:
+      - 80:80
+    volumes:
+      - ..:/vyjs:ro
+  
+version: '3.6'
+  
