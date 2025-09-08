@@ -100,6 +100,8 @@ export function arc_from_states(xyq0, xyq1) {
   }
 }
 
+const HPIXD = 2
+const HPIXR = 0.7;
 const sgn = function(x) {  return (x == 0) ? 0 : ((x > 0) ? 1 : -1);  }
 const nrm = function(a) { return Math.hypot(a.x, a.y); }
 const subv = function(a,b) { return {x:a.x-b.x, y:a.y-b.y}; }
@@ -108,62 +110,72 @@ const dot = function(a,b) { return a.x*b.x + a.y*b.y; }
 const crs = function(a,b) { return a.x*b.y - a.y*b.x; }
 const mltv = function(a,b) { return {x:a.x*b, y:a.y*b}; }
 export function biarc(xyq0, xyq1) {
-    let arcs = [];
-    let t1 = {x:Math.cos(xyq0.q), y:Math.sin(xyq0.q)};
-    let t2 = {x:Math.cos(xyq1.q), y:Math.sin(xyq1.q)};
-    let v = subv(xyq1, xyq0);
-    let L = nrm(v);
-    if (L <= SMALL) {
-        return [];
-    }
-    let t = addv(t1,t2);
-    let denom1 = 2*(1 - dot(t1,t2));
-    if (Math.abs(denom1) < SMALL && Math.abs(4*dot(v, t2)) < SMALL) {
-        let pm = addv(xyq0 , mltv(v,0.5));
-        let r = L/4;
-        let l = Math.PI*r
-        let k = (crs(v,t1) < 0) ? -1/r : 1/r;
-        return [
-          {x0:xyq0.x, y0:xyq0.y, q0:xyq0.q, k:k, L:l},
-          {x0:pm.x, y0:pm.y, q0:xyq0.q+k*l, k:-k, L:l},
-        ];
-    } else {
-      let d1 = 0;
-      let pm = {x:0, y:0};
-      if (Math.abs(denom1) < SMALL) {
-        const d1denoma = 4*dot(v, t2);
-        d1 = dot(v, v)/d1denoma;
-      } else {
-        const vdott = dot(v, t);
-        const d1numerb = 2*(1-dot(t1, t2));
-        const d1numera = vdott*vdott + d1numerb*dot(v,v);
-        d1 = (-vdott + Math.sqrt(d1numera))/denom1;
-      }
-      let q1 = addv(xyq0,mltv(t1,d1));
-      let denom = dot(v, t2)-d1*(dot(t1,t2)-1);
-      if (Math.abs(denom) < SMALL) {
-        pm = q1+t2*dot(t2, subv(xyq1, q1));
-      } else {
-        let d2 = (0.5*dot(v,v)-d1*dot(v,t1)) / denom;
-        let q2 = subv(xyq1, mltv(t2,d2));
-        pm = mltv(addv(mltv(q1,d2),mltv(q2,d1)), 1/(d1+d2));
-      }
-      let a1 = arc_from_states(xyq0, pm);
-      pm.q = xyq0.q + a1.k*a1.L;
-      return [a1, arc_from_states(pm, xyq1)];
-    }
+  let t1 = {x:Math.cos(xyq0.q), y:Math.sin(xyq0.q)};
+  let t2 = {x:Math.cos(xyq1.q), y:Math.sin(xyq1.q)};
+  let v = subv(xyq1, xyq0);
+  let L = nrm(v);
+  if (L <= SMALL) {
+      return [];
   }
+  let t = addv(t1,t2);
+  let denom1 = 2*(1 - dot(t1,t2));
+  if (Math.abs(denom1) < SMALL && Math.abs(4*dot(v, t2)) < SMALL) {
+      let pm = addv(xyq0 , mltv(v,0.5));
+      let r = L/4;
+      let l = Math.PI*r
+      let k = (crs(v,t1) < 0) ? -1/r : 1/r;
+      return [
+        {x0:xyq0.x, y0:xyq0.y, q0:xyq0.q, k:k, L:l},
+        {x0:pm.x, y0:pm.y, q0:xyq0.q+k*l, k:-k, L:l},
+      ];
+  } else {
+    let d1 = 0;
+    let pm = {x:0, y:0};
+    if (Math.abs(denom1) < SMALL) {
+      const d1denoma = 4*dot(v, t2);
+      d1 = dot(v, v)/d1denoma;
+    } else {
+      const vdott = dot(v, t);
+      const d1numerb = 2*(1-dot(t1, t2));
+      const d1numera = vdott*vdott + d1numerb*dot(v,v);
+      d1 = (-vdott + Math.sqrt(d1numera))/denom1;
+    }
+    let q1 = addv(xyq0,mltv(t1,d1));
+    let denom = dot(v, t2)-d1*(dot(t1,t2)-1);
+    if (Math.abs(denom) < SMALL) {
+      pm = q1+t2*dot(t2, subv(xyq1, q1));
+    } else {
+      let d2 = (0.5*dot(v,v)-d1*dot(v,t1)) / denom;
+      let q2 = subv(xyq1, mltv(t2,d2));
+      pm = mltv(addv(mltv(q1,d2),mltv(q2,d1)), 1/(d1+d2));
+    }
+    let a1 = arc_from_states(xyq0, pm);
+    pm.q = xyq0.q + a1.k*a1.L;
+    return [a1, arc_from_states(pm, xyq1)];
+  }
+}
 
-const add_arc = function(arc, stroke_width, color) {
-  arc.draw_type = 'arc';
-  arc.stroke_width = stroke_width;
-  arc.stroke = color;
-  return arc;
+export const arc_path_draw = function(obj,ctx) {
+  let trnsfrm = ctx.get_transform();
+  let radius = obj.node_pix/trnsfrm.a;
+  ctx.fillStyle = obj.color;
+  ctx.strokeStyle = obj.color;
+  obj.xyq.forEach(xyq => {
+    let xh = xyq.x + HPIXD*radius*Math.cos(xyq.q);
+    let yh = xyq.y + HPIXD*radius*Math.sin(xyq.q)
+    ctx.beginPath();
+    ctx.arc(xyq.x, xyq.y, radius, 0, 2 * Math.PI, false);
+    ctx.fill();
+    ctx.beginPath();
+    ctx.arc(xh, yh, HPIXR*radius, 0, 2 * Math.PI, false);
+    ctx.fill();
+  });
 }
 
 export class ArcPath {
   constructor(is_closed_loop) {
     this.is_closed_loop = is_closed_loop;
+    this.node_pix = 8;
     this.arc_color = 'gray';
     this.arc_width = 1;
     this.nodes = [];
@@ -175,20 +187,16 @@ export class ArcPath {
     for (var ii = 0; ii < xyq.length; ii++) {
       let xyq0 = xyq[ii];
       let xyq1 = xyq[(ii + 1) % xyq.length];
-      let node = {xyq:xyq0, arcs:[], 
-        handle:{draw_type:'circle', x:xyq0.x, y:xyq0.y, radius:8, scale_with_zoom:true, fill:this.arc_color}
-      };
+      let node = {xyq:xyq0, arcs:[]};
       if (ii +1 < xyq.length || this.is_closed_loop) {
-        biarc(xyq0, xyq1).forEach(arc => {
-          node.arcs.push(add_arc(arc, this.arc_width, this.arc_color)) 
-        })
+        biarc(xyq0, xyq1).forEach(arc => { node.arcs.push(arc) });
       }
       this.nodes.push(node);
     }
   }
   
   states() {
-    return this.nodes.map(node => node.xyq);
+    return this.nodes.map(node => { return {x:node.xyq.x,y:node.xyq.y,q:node.xyq.q}});
   }
 
   arcs() {
@@ -200,7 +208,15 @@ export class ArcPath {
   }
 
   drawing() {
-    return this.nodes;
+    return {
+      arcs:this.arcs().map(a => {
+        a.draw_type = 'arc';
+        a.stroke = this.arc_color;
+        a.stroke_width = this.arc_width;
+        return a;
+      }),
+      nodes:{draw_type:'arc_path_draw', xyq:this.states(), color:this.arc_color, node_pix:this.node_pix}
+    };
   }
 }
 
@@ -246,21 +262,24 @@ export function mouse_move(MAPFUNCS, arcpath, e) {
 export function mouse_down(MAPFUNCS, arcpath, e) { 
   if (!arcpath) return;
   let P = MAPFUNCS.eventToPosition(e);
+  let trnsfrm = MAPFUNCS.CTX.get_transform();
   let insdel = e.buttons == 1 && e.detail == 2;
   for (let ii = 0; ii < arcpath.nodes.length; ii++) {
     let N = arcpath.nodes[ii];
-    if (screendist(MAPFUNCS, {x:N.xyq.x, y:N.xyq.y}, P) <= N.handle.radius) {
+    let x = N.xyq.x + HPIXD*arcpath.node_pix*Math.cos(N.xyq.q)/trnsfrm.a;
+    let y = N.xyq.y + HPIXD*arcpath.node_pix*Math.sin(N.xyq.q)/trnsfrm.a;
+    if (screendist(MAPFUNCS, {x:N.xyq.x, y:N.xyq.y}, P) <= arcpath.node_pix) {
       if (insdel) { // Delete
         arcpath.nodes.splice(ii, 1);
         arcpath.set(arcpath.states());
-        return true;
-      } else if (e.ctrlKey) {  // Move heading
-        arcpath.down_loc = {node_index:ii, P};
         return true;
       } else if (e.shiftKey) {  // Move 
         arcpath.down_loc = {node_index:ii};
         return true;
       }
+    } else if (!insdel && screendist(MAPFUNCS, {x, y}, P) <= arcpath.node_pix*HPIXR) {
+      arcpath.down_loc = {node_index:ii, P};
+      return true;
     }
   }
   if (insdel) {
@@ -269,7 +288,7 @@ export function mouse_down(MAPFUNCS, arcpath, e) {
         let prcnt = percent_along_arc(arc, P.x, P.y);
         if (prcnt < 1 && prcnt > 0) {
           let s = arc_state(arc, prcnt*Math.abs(arc.L));
-          if (screendist(MAPFUNCS,P,s) < arcpath.nodes[ii].handle.radius) {
+          if (screendist(MAPFUNCS,P,s) < arcpath.node_pix) {
             let states = arcpath.states();
             states.splice(ii+1, 0, s);
             arcpath.set(states);
