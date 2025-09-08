@@ -231,9 +231,11 @@ export function mouse_up(MAPFUNCS, arcpath, e) {
   if (arcpath.down_loc && arcpath.down_loc.P && arcpath.down_loc.insert) {
     let P = MAPFUNCS.eventToPosition(e);
     let q = Math.atan2(P.y-arcpath.down_loc.P.y,P.x-arcpath.down_loc.P.x);
-    let xyq = arcpath.states();
-    xyq.push({x:arcpath.down_loc.P.x, y:arcpath.down_loc.P.y, q});
-    arcpath.set(xyq);
+    if (!isNaN(q)) {
+      let xyq = arcpath.states();
+      xyq.push({x:arcpath.down_loc.P.x, y:arcpath.down_loc.P.y, q});
+      arcpath.set(xyq);
+    }
   }
   let upd = Boolean(arcpath.down_loc);
   arcpath.down_loc = false;

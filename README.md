@@ -2,7 +2,7 @@
 A group of javascript modules to make creating user interfaces simpler
 You can use jsdelivr.net to get the latest modules. For example the module generic_map.js can be accessed in your javascript with
 
-import { setup_generic_map } from "https://cdn.jsdelivr.net/gh/vytools/vyjs@v3.0.4/js/generic_map.js";
+import { setup_generic_map } from "https://cdn.jsdelivr.net/gh/vytools/vyjs@v3.0.5/js/generic_map.js";
 
 
 ## generic_map.js

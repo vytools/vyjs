@@ -101,7 +101,7 @@ let draw_text = function(txt, ctx) {
 
 let draw_thing = function(thing, ctx, toggleable, togname) {
   try {
-    if (typeof(thing) == "object") {
+    if (thing && typeof(thing) == "object") {
       if (thing.draw_toggle) {
         let current = Boolean(thing._draw_toggle_off_);
         thing._draw_toggle_off_ = (thing.draw_toggle == togname) ? !current : current;
@@ -176,7 +176,7 @@ export function center_map_with_dimensions(ctx, xc, yc, width,height) { // x, y,
 export function setup_generic_map(contentdiv, DATA, RenderFuncs) {
   let CANVAS = document.createElement('canvas');
   let CTX = null;
-  if (!DATA.measuring_tool) {
+  if (!DATA.hasOwnProperty('measuring_tool')) {
     DATA.measuring_tool = {
       draw_toggle:'Measuring Tool',
       _draw_toggle_off_:true,
