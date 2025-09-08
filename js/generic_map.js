@@ -1,11 +1,5 @@
 import { initialize_map } from "./zoom_pan_canvas.js";
-
-const angle_mod = function(q) {
-  let qm = q % (Math.PI*2);
-  if (qm >  Math.PI) qm -= 2*Math.PI;
-  if (qm < -Math.PI) qm += 2*Math.PI;
-  return qm;
-}
+import { version } from "./version.js";
 
 let draw_arc = function(arc, ctx) {
   let trnsfrm = ctx.get_transform();
@@ -39,6 +33,7 @@ let draw_arc = function(arc, ctx) {
 }
 
 let draw_image = function(img, ctx) {
+  if (img.image.naturalWidth == undefined) return;
   ctx.save();
   ctx.translate(img.x, img.y);
   ctx.rotate(img.rotation);
@@ -277,6 +272,17 @@ export function setup_generic_map(contentdiv, DATA, RenderFuncs) {
       return CTX.positionToScreen(x,-y);
     },
     CANVAS:CANVAS,
-    CTX:CTX
+    CTX:CTX,
+    export:() => {
+      return `<html><head><meta content="text/html;charset=utf-8" http-equiv="Content-Type">
+<link href="https://cdn.jsdelivr.net/npm/bootstrap@5.0.2/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-EVSTQN3/azprG1Anm3QDgpJLIm9Nao0Yz1ztcQTwFspd3yD65VohhpuuCOmLASjC" crossorigin="anonymous">
+<style>.full {position:absolute;top:0px;left:0px;width:100%; height:100%;overflow:none}</style></head>
+<body class="full"><div id="map" class="full"></div>
+<script type="module">import { setup_generic_map } from "https://cdn.jsdelivr.net/gh/vytools/vyjs@v${version}/js/generic_map.js";
+let DRAW_DATA = ${JSON.stringify(DATA,null,1)};
+let MAPFUNCS = setup_generic_map(document.querySelector('#map'), DRAW_DATA, {});
+</script>
+</body></html>`;
+    }
   };
 }
