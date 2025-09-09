@@ -152,7 +152,7 @@ let draw = function(ctx, data, togname) {
   ctx.restore();
 }
 
-export function center_map(ctx, xc, yc) { // x, y, map coordinates of center and desired width/height
+let center_map = function(ctx, xc, yc) { // x, y, map coordinates of center and desired width/height
   let t = ctx.get_transform();
   let w = ctx.canvas.width;
   let h = ctx.canvas.height;
@@ -161,7 +161,7 @@ export function center_map(ctx, xc, yc) { // x, y, map coordinates of center and
   ctx.set_transform(t);
 }
 
-export function center_map_with_dimensions(ctx, xc, yc, width,height) { // x, y, map coordinates of center and desired width/height
+let center_map_with_dimensions = function(ctx, xc, yc, width,height) { // x, y, map coordinates of center and desired width/height
   let t = ctx.get_transform();
   let w = ctx.canvas.width;
   let h = ctx.canvas.height;
@@ -250,14 +250,14 @@ export function setup_generic_map(contentdiv, DATA, RenderFuncs) {
     }
     CTX.handleMouseUp(e) 
   }, false);
-  CANVAS.addEventListener('DOMMouseScroll',(e) => { 
+  CANVAS.addEventListener('wheel',(e) => { 
     if (DATA.disable_map_events) return;
     CTX.handleScroll(e); draw(CTX,DATA, null);    
-  }, false);
+  }, {passive:false});
   CANVAS.addEventListener('mousewheel',(e) => { 
     if (DATA.disable_map_events) return;
     CTX.handleScroll(e); draw(CTX,DATA, null);        
-  }, false);
+  }, {passive:false});
   return {
     draw:() => { draw(CTX, DATA, null) },
     resize:() => { resize() },
