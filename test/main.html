@@ -88,15 +88,7 @@ window.resizex = function(event) { if (MAPFUNCS) MAPFUNCS.resize(); }
 
 // TEST DOWNLOAD **
 document.querySelector('button.export').addEventListener('click',(e) => {
-  const blob = new Blob([MAPFUNCS.export()], { type: 'text/html' });
-  const a = document.createElement('a');
-  let url = URL.createObjectURL(blob);
-  a.href = url;
-  a.download = 'export.html'; // Set a default filename
-  document.body.appendChild(a); // Temporarily append to body
-  a.click(); // Programmatically click the link
-  document.body.removeChild(a); // Remove the temporary link  
-  URL.revokeObjectURL(url); // Release the object URL
+  MAPFUNCS.export("export.html");
 });
 // ****************
 

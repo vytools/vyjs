@@ -273,8 +273,8 @@ export function setup_generic_map(contentdiv, DATA, RenderFuncs) {
     },
     CANVAS:CANVAS,
     CTX:CTX,
-    export:() => {
-      return `<html><head><meta content="text/html;charset=utf-8" http-equiv="Content-Type">
+    export:(fname) => {
+      let html = `<html><head><meta content="text/html;charset=utf-8" http-equiv="Content-Type">
 <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.0.2/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-EVSTQN3/azprG1Anm3QDgpJLIm9Nao0Yz1ztcQTwFspd3yD65VohhpuuCOmLASjC" crossorigin="anonymous">
 <style>.full {position:absolute;top:0px;left:0px;width:100%; height:100%;overflow:none}</style></head>
 <body class="full"><div id="map" class="full"></div>
@@ -283,6 +283,19 @@ let DRAW_DATA = ${JSON.stringify(DATA,null,1)};
 let MAPFUNCS = setup_generic_map(document.querySelector('#map'), DRAW_DATA, {});
 </script>
 </body></html>`;
+      if (fname) {
+        const blob = new Blob([html], { type: 'text/html' });
+        const a = document.createElement('a');
+        let url = URL.createObjectURL(blob);
+        a.href = url;
+        a.download = fname;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);  
+        URL.revokeObjectURL(url);
+      } else {
+        return html;
+      }
     }
   };
 }
