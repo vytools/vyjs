@@ -279,8 +279,14 @@ export function setup_generic_map(contentdiv, DATA, RenderFuncs) {
 <style>.full {position:absolute;top:0px;left:0px;width:100%; height:100%;overflow:none}</style></head>
 <body class="full"><div id="map" class="full"></div>
 <script type="module">import { setup_generic_map } from "https://cdn.jsdelivr.net/gh/vytools/vyjs@v${version}/js/generic_map.js";
+let DRAW_EXT = ${JSON.stringify(RenderFuncs, (k, v) => { return (typeof v === "function") ? v.toString() : v;}, 2)};
+for (const key in DRAW_EXT) {
+  if (typeof DRAW_EXT[key] === "string" && DRAW_EXT[key].startsWith("function")) {
+    DRAW_EXT[key] = eval(\`(\$\{DRAW_EXT[key]})\`);
+  }
+}
 let DRAW_DATA = ${JSON.stringify(DATA,null,1)};
-let MAPFUNCS = setup_generic_map(document.querySelector('#map'), DRAW_DATA, {});
+let MAPFUNCS = setup_generic_map(document.querySelector('#map'), DRAW_DATA, DRAW_EXT);
 </script>
 </body></html>`;
       if (fname) {
