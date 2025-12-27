@@ -19,7 +19,7 @@ const trackTransforms = function(ctx) {
   var svg = document.createElementNS("http://www.w3.org/2000/svg",'svg');
   var xform = svg.createSVGMatrix();
   ctx.get_transform = function(){ 
-    return {a:xform.a,b:xform.b,c:xform.c,d:xform.d,d:xform.d,e:xform.e,f:xform.f};
+    return {a:xform.a,b:xform.b,c:xform.c,d:xform.d,e:xform.e,f:xform.f};
   };
   ctx.set_transform = function(x) {
     if (x) ctx.setTransform(x.a, x.b, x.c, x.d, x.e, x.f);
@@ -150,7 +150,7 @@ export function initialize_map(CANVAS) {
     let t = this.get_transform();
     let dx = Math.abs(b.x-a.x);
     if (dx == 0) {
-      console.log('too much zoom!')
+      console.log('too much zoom, or zero canvas width/height!')
       return;
     }
     let n = w/40;             // want roughly this many intervals
