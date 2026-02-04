@@ -1,11 +1,16 @@
 const SMALL_ANGLE = 0.001;
+const TWOPI = Math.PI*2;
+const PIHALF = Math.PI/2;
 export const SMALL = 1e-8;
 export const EPSILON = 1e-12;
+export function pi2mod(theta) {
+  return theta - TWOPI * Math.floor(theta / TWOPI);
+}
 
 export function pimod(q) {
-  let qm = q % (Math.PI*2);
-  if (qm >  Math.PI) qm -= 2*Math.PI;
-  if (qm < -Math.PI) qm += 2*Math.PI;
+  let qm = q % TWOPI;
+  if (qm >  Math.PI) qm -= TWOPI;
+  if (qm < -Math.PI) qm += TWOPI;
   return qm;
 }
 
@@ -72,13 +77,13 @@ export function three_point_arc(p1, p2, p3) {
     let q = Math.atan2(ray1.y, ray1.x);
     let dp2cp = {x:p2.x-cp.x, y:p2.y-cp.y};
     let dq2 = pimod(Math.atan2(dp2cp.y, dp2cp.x)-q);
-    if (dq2*k < 0 && k<0)        { dq2 -= 2*Math.PI; }
-    else if (dq2*k < 0 && k>0)   { dq2 += 2*Math.PI; }
+    if (dq2*k < 0 && k<0)        { dq2 -= TWOPI; }
+    else if (dq2*k < 0 && k>0)   { dq2 += TWOPI; }
     let dp3cp = {x:p3.x-cp.x, y:p3.y-cp.y};
     let dq3 = pimod(Math.atan2(dp3cp.y, dp3cp.x)-(q+dq2));
-    if (dq3*k < 0 && k<0)        { dq3 -= 2*Math.PI; }
-    else if (dq3*k < 0 && k>0)   { dq3 += 2*Math.PI; }
-    q += (k>0) ? Math.PI/2 : -Math.PI/2;
+    if (dq3*k < 0 && k<0)        { dq3 -= TWOPI; }
+    else if (dq3*k < 0 && k>0)   { dq3 += TWOPI; }
+    q += (k>0) ? PIHALF : -PIHALF;
     return {x0:p1.x, y0:p1.y, q0:q, k:k, L:Math.abs(dq2/k)+Math.abs(dq3/k)};
   }
 }
@@ -91,7 +96,7 @@ export function arc_from_states(xyq0, xyq1) {
   } else {
     let theta0 = pimod(Math.atan2(dy, dx) - xyq0.q);
     let theta = theta0;
-    if (Math.abs(theta0) > Math.PI/2) { // Big arc
+    if (Math.abs(theta0) > PIHALF) { // Big arc
       theta = -pimod(Math.atan2(-dy, -dx) - xyq0.q);
     }
     let k = 2*Math.sin(theta)/chord;
@@ -164,10 +169,10 @@ export const arc_path_draw = function(obj,ctx) {
     let xh = xyq.x + HPIXD*radius*Math.cos(xyq.q);
     let yh = xyq.y + HPIXD*radius*Math.sin(xyq.q)
     ctx.beginPath();
-    ctx.arc(xyq.x, xyq.y, radius, 0, 2 * Math.PI, false);
+    ctx.arc(xyq.x, xyq.y, radius, 0, TWOPI, false);
     ctx.fill();
     ctx.beginPath();
-    ctx.arc(xh, yh, HPIXR*radius, 0, 2 * Math.PI, false);
+    ctx.arc(xh, yh, HPIXR*radius, 0, TWOPI, false);
     ctx.fill();
   });
 }
@@ -307,13 +312,17 @@ export function mouse_down(MAPFUNCS, arcpath, e) {
 export function arcs_state(arcs, distance) {
     for (var ii = 0; ii < arcs.length; ii++) {
         if ( distance < arc_length(arcs[ii]) ) {
-            return arc_state(arcs[ii], distance);
+            let as = arc_state(arcs[ii], distance);
+            as.i = ii;
+            return as;
         }
         distance -= arc_length(arcs[ii]);
     }
     if (arcs.length > 0) {
         let arc = arcs[arcs.length-1];
-        return arc_state(arc, distance + arc_length(arc));
+        let as = arc_state(arc, distance + arc_length(arc));
+        as.i = arcs.length-1;
+        return as;
     }
     return null
 }
@@ -363,7 +372,7 @@ export function percent_along_arc(arc, x, y) {
   }
   let angle_from_arc_center_to_test_point = Math.atan2(arc_center_y_to_test_y, arc_center_x_to_test_x);
   let angle_from_arc_center_to_arc_midpoint = arc.q0 + arc_delta_heading/2 + 
-      ((arc.k > 0) ? -Math.PI/2 : Math.PI/2);
+      ((arc.k > 0) ? -PIHALF : PIHALF);
   angle_from_arc_center_to_arc_midpoint = pimod(angle_from_arc_center_to_arc_midpoint);
   let delta_angle = angle_from_arc_center_to_test_point - angle_from_arc_center_to_arc_midpoint;
   let qdistc = pimod(delta_angle) / arc_delta_heading;
@@ -399,3 +408,83 @@ export function nearest_point(arcs, x, y, lstart) {
   }
   return {l:lpast, finished:true};
 }
+
+// DUBINS
+const LSL = function(a, b, d) {
+  const tmp = Math.atan2(Math.cos(b) - Math.cos(a), d + Math.sin(a) - Math.sin(b));
+  const t = pi2mod(-a + tmp);
+  const p = Math.sqrt(2 + d * d + 2 * (d * (Math.sin(a) - Math.sin(b)) - Math.cos(a - b)));
+  const q = pi2mod(b - tmp);
+  return { length: t + p + q, segments: [{L:t,k:1}, {L:p,k:0}, {L:q,k:1}]};
+}
+
+const RSR = function(a, b, d) {
+  const tmp = Math.atan2(Math.cos(a) - Math.cos(b), d - Math.sin(a) + Math.sin(b));
+  const t = pi2mod(a - tmp);
+  const p = Math.sqrt(2 + d * d + 2 * (d * (Math.sin(b) - Math.sin(a)) - Math.cos(a - b)));
+  const q = pi2mod(-b + tmp);
+  return { length: t + p + q, segments: [{L:t,k:-1}, {L:p,k:0}, {L:q,k:-1}] };
+}
+
+const LSR = function(a, b, d) {
+  const p_sq = -2 + d * d + 2 * Math.cos(a - b) + 2 * d * (Math.sin(a) + Math.sin(b));
+  if (p_sq < 0) return null;
+  const p = Math.sqrt(p_sq);
+  const tmp = Math.atan2(-Math.cos(a) - Math.cos(b), d + Math.sin(a) + Math.sin(b)) - Math.atan2(-2, p);
+  const t = pi2mod(-a + tmp);
+  const q = pi2mod(-b + tmp);
+  return { length: t + p + q, segments: [{L:t,k:1}, {L:p,k:0}, {L:q,k:-1}] };
+}
+
+const RSL = function(a, b, d) {
+  const p_sq = -2 + d * d + 2 * Math.cos(a - b) - 2 * d * (Math.sin(a) + Math.sin(b));
+  if (p_sq < 0) return null;
+  const p = Math.sqrt(p_sq);
+  const tmp = Math.atan2(Math.cos(a) + Math.cos(b), d - Math.sin(a) - Math.sin(b)) - Math.atan2(2, p);
+  const t = pi2mod(a - tmp);
+  const q = pi2mod(b - tmp);
+  return { length: t + p + q, segments: [{L:t,k:-1}, {L:p,k:0}, {L:q,k:1}] };
+}
+
+const RLR = function(a, b, d) {
+  const tmp = (6 - d * d + 2 * Math.cos(a - b) + 2 * d * (Math.sin(a) - Math.sin(b))) / 8;
+  if (Math.abs(tmp) > 1) return null;
+  const p = pi2mod(TWOPI - Math.acos(tmp));
+  const t = pi2mod(-a + Math.atan2(Math.cos(b) - Math.cos(a), d + Math.sin(a) - Math.sin(b)) + p / 2);
+  const q = pi2mod(b - a - t + p);
+  return { length: t + p + q, segments: [{L:t,k:-1}, {L:p,k:1}, {L:q,k:-1}] };
+}
+
+const LRL = function(a, b, d) {
+  const tmp = (6 - d * d + 2 * Math.cos(a - b) + 2 * d * (Math.sin(b) - Math.sin(a))) / 8;
+  if (Math.abs(tmp) > 1) return null;
+  const p = pi2mod(TWOPI - Math.acos(tmp));
+  const t = pi2mod(a - Math.atan2(Math.cos(a) - Math.cos(b), d - Math.sin(a) + Math.sin(b)) + p / 2);
+  const q = pi2mod(a - b - t + p);
+  return { length: t + p + q, segments: [{L:t,k:1}, {L:p,k:-1}, {L:q,k:1}] };
+}
+
+export function dubins(A, B, kmax) {
+    const dx = B.x - A.x;
+    const dy = B.y - A.y;
+    const d = Math.hypot(dx,dy)*kmax;
+    const dq = Math.atan2(dy,dx);
+    const alpha = pi2mod(A.q - dq);
+    const beta = pi2mod(B.q - dq);
+    const sols = [LSL(alpha, beta, d), RSR(alpha, beta, d),
+                  LSR(alpha, beta, d), RSL(alpha, beta, d),
+                  LRL(alpha, beta, d), RLR(alpha, beta, d)];
+    let best = {length:Infinity, segments:[]};
+    sols.forEach(sol => {
+      if (sol && sol.length < best.length) best = sol;
+    })
+    let state = JSON.parse(JSON.stringify(A));
+    let path = [];
+    best.segments.forEach(kl => {
+      let arc = {x0:state.x, y0:state.y, q0:state.q, k:kl.k*kmax, L:kl.L/kmax};
+      state = arc_state(arc, kl.L/kmax);
+      path.push(arc);
+    });
+    return path;
+}
+

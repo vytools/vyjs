@@ -59,6 +59,7 @@ let DRAW_DATA = {
         {draw_type:'circle',fill:'purple',x:300,y:-800,radius:100,stroke:'black',stroke_width:5,scale_with_zoom:true}
     ]
   },
+  rainbow:{draw_type:'rainbow', radius:5, points:[0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16].map(y => { return {x:-1, y}})},
   special:{draw_type:'special_circle',xx:600,yy:-400},
   data_map:[]
 };
@@ -79,6 +80,18 @@ let DRAW_EXT = {
     ctx.scale(1,-1);
     ctx.fillText('Special!',obj.xx,-obj.yy)
     ctx.scale(1,-1);
+  },
+  rainbow:function(obj, ctx) {
+    let trnsfrm = ctx.get_transform();
+    let r = obj.radius/trnsfrm.a;
+    let n = (obj.points) ? obj.points.length : 0;
+    for (var ii = 0; ii < n; ii++) {
+      let p = obj.points[ii];
+      ctx.fillStyle = `hsl(${Math.floor(300*ii/n)},100%,50%)`;
+      ctx.beginPath();
+      ctx.arc(p.x, p.y, r, 0, 2 * Math.PI, false);
+      ctx.fill();
+    }
   }
 };
 
@@ -97,6 +110,12 @@ document.querySelector('button.export').addEventListener('click',(e) => {
 let ARCPATH = new ARCS.ArcPath(false);
 ARCPATH.set([{x:400,y:-300,q:0},{x:300,y:-200,q:0}])
 DRAW_DATA.arcpath = ARCPATH.drawing();
+DRAW_DATA.dubins = ARCS.dubins({x:-100,y:-100,q:0},{x:-100,y:-98,q:-3.14},0.1).map(a => {
+  a.draw_type = 'arc';
+  a.stroke = 'purple';
+  a.stroke_width = 3;
+  return a;
+});
 
 MAPFUNCS.CANVAS.addEventListener('mousedown',(e) => { 
   if (ARCPATH && ARCS.mouse_down(MAPFUNCS, ARCPATH, e)) {
