@@ -447,20 +447,20 @@ const RSL = function(a, b, d) {
 }
 
 const RLR = function(a, b, d) {
-  const tmp = (6 - d * d + 2 * Math.cos(a - b) + 2 * d * (Math.sin(a) - Math.sin(b))) / 8;
+  const tmp = (6.0 - d * d + 2.0 * Math.cos(a - b) + 2.0 * d * (Math.sin(b) - Math.sin(a))) / 8.0;
   if (Math.abs(tmp) > 1) return null;
   const p = pi2mod(TWOPI - Math.acos(tmp));
-  const t = pi2mod(-a + Math.atan2(Math.cos(b) - Math.cos(a), d + Math.sin(a) - Math.sin(b)) + p / 2);
-  const q = pi2mod(b - a - t + p);
+  const t = pi2mod(a - Math.atan2(Math.cos(a) - Math.cos(b), d - Math.sin(a) + Math.sin(b)) + p / 2.0);
+  const q = pi2mod(a - b - t + p);
   return { length: t + p + q, segments: [{L:t,k:-1}, {L:p,k:1}, {L:q,k:-1}] };
 }
 
 const LRL = function(a, b, d) {
-  const tmp = (6 - d * d + 2 * Math.cos(a - b) + 2 * d * (Math.sin(b) - Math.sin(a))) / 8;
+  const tmp = (6.0 - d * d + 2.0 * Math.cos(a - b) + 2.0 * d * (Math.sin(a) - Math.sin(b))) / 8.0;
   if (Math.abs(tmp) > 1) return null;
   const p = pi2mod(TWOPI - Math.acos(tmp));
-  const t = pi2mod(a - Math.atan2(Math.cos(a) - Math.cos(b), d - Math.sin(a) + Math.sin(b)) + p / 2);
-  const q = pi2mod(a - b - t + p);
+  const t = pi2mod(-a + Math.atan2(Math.cos(b) - Math.cos(a), d + Math.sin(a) - Math.sin(b)) + p / 2.0);
+  const q = pi2mod(b - a - t + p);
   return { length: t + p + q, segments: [{L:t,k:1}, {L:p,k:-1}, {L:q,k:1}] };
 }
 
