@@ -371,24 +371,34 @@ const reload = function(container, topdef, objct, D) {
     if (D.functions.on_change) D.functions.on_change('', null, D.object);
 }
 
-export function create(container, definitions, def, obj, functions) {
-    if (!definitions.hasOwnProperty(def)) {
-        console.log(`Definitions do not contain "${def}"`);
-        return;
+export function init(container, D) {
+    // D={definitions, top, functions, object}
+    if (!D.hasOwnProperty('definitions')) {
+        console.log('Second argument (D) must have fields "definitions"');
+    } else if (!D.top || D.definitions.hasOwnProperty(D.top)) {
+        console.log('Second argument (D) must have fields "top" and D.definitions[D.top] must exist');
     }
-    let object = obj || {};
-    let topdef = {type:def};
-    object = merge_deep(create_object_of_type(topdef, definitions), object);
-    let D = {definitions, object, functions};
-    while(container.firstChild){ container.removeChild(container.firstChild);}
+    let topdef = {type:D.top};
+    if (!D.functions) D.functions = {};
+    let default_ = create_object_of_type(topdef, D.definitions);
+    if (!D.object) {
+        D.object = default_;
+    } else {
+        D.object = merge_deep(default_, D.object);
+    }
+    while(container.firstChild){ container.removeChild(container.firstChild); }
     container.insertAdjacentHTML('beforeend',`<div class="data_form_top_div" style="flex:1"></div>`);
     const reload_ = function(data) {
         if (D.functions.on_load) data = D.functions.on_load(topdef,INITIALCHAR,data);
         reload(container, topdef, data, D);
     };
-
     create_new_form(container, topdef, D);
     return {reload:reload_}
+}
+
+export function create(container, definitions, def, obj, functions) {
+    let D = {definitions, top:def, object:obj, functions};
+    return init(container, D);
 }
 
 export function download(filename,x) {
