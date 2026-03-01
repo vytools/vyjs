@@ -92,6 +92,24 @@ export function setup(VYD) {
     setTimeout(() => { document.querySelector('div.alerts').innerHTML=''; }, timeout*1000);
   }
 
+  const set_vytools_data = function(data) {
+    let pblc = data.pblc;
+    let child_results = data.child_results;
+    let entries = [];
+    if (child_results && child_results.length > 0) {
+      entries = child_results;
+    } else if (pblc && pblc.run_results && pblc.run_results.results) {
+      entries.push(pblc.run_results.results);
+    } else if (pblc) {
+      let cnfg = (pblc.share_data && pblc.share_data.config) ? pblc.share_data.config : null;
+      entries.push({config:cnfg});
+    }
+    if (entries && entries.length > 0) {
+      DEFFORM.reload(entries[0]);
+      VYD.set_entries(entries);
+    }
+  }
+
   window.addEventListener('message',function(e) {
     try {
       if (e.source == window.parent && e.data.topic == 'results_json') {
@@ -105,23 +123,7 @@ export function setup(VYD) {
           console.log('** Received "child_results" message');
       } else if (e.source == window.parent && e.data.topic == 'tool_data' && e.data.data) {
         console.log('** Received "tool_data" message',e.data.data);
-        if (e.data.data && e.data.data.pblc) {
-          let pblc = e.data.data.pblc;
-          let child_results = e.data.data.child_results;
-          let entries = [];
-          if (child_results && child_results.length > 0) {
-            entries = child_results;
-          } else if (pblc && pblc.run_results && pblc.run_results.results) {
-            entries.push(pblc.run_results.results);
-          } else {
-            let cnfg = (pblc.share_data && pblc.share_data.confg) ? pblc.share_data.confg : null;
-            entries.push({config:cnfg});
-          }
-          if (entries && entries.length > 0) {
-            DEFFORM.reload(entries[0]);
-            VYD.set_entries(entries);
-          }
-        }
+        if (e.data.data && e.data.data.pblc) set_vytools_data(e.data.data);
       } else {
         console.log('window.addEventListener ignoring message: ', e.data);
       }
@@ -151,7 +153,7 @@ export function setup(VYD) {
   if (!VYD.defobj.functions.on_save_item) {
     VYD.defobj.functions.on_save_item = function(typ, path, obj) {
       if (path == '_') {
-        window.parent.postMessage({topic:'save', data:{'pblc.share_data.confg':obj.config}},'*');
+        window.parent.postMessage({topic:'save', data:{'pblc.share_data.config':obj.config}},'*');
       } else {
         window.parent.postMessage({topic:'save_to_file', data:{data:obj,defintion:typ}},'*');
         // if (filename) DF.download(filename,{data:obj,defintion:typ});
@@ -161,5 +163,5 @@ export function setup(VYD) {
 
   const DEFFORM = DF.init(document.querySelector('#params'), VYD.defobj);
   DEFFORM.reload(VYD.defobj.object);
-
+  return {set_vytools_data};
 }
