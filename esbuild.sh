@@ -2,7 +2,7 @@
 DIR="$(dirname "$(readlink -f "$0")")"
 cd $DIR
 
-docker buildx build --load --tag vytools/esbuild:latest --platform linux/amd64 .
+docker buildx build -f esbuild/Dockerfile --load --tag vytools/esbuild:latest --platform linux/amd64 .
 while true; do
     read -p "Do you wish to push the image? " yn
     case $yn in

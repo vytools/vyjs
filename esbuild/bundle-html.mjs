@@ -119,7 +119,6 @@ async function inlineLocalScript(html, baseDir) {
   });
 }
 
-
 async function inlineLocalCSS(html, baseDir) {
   // Match: <link rel="stylesheet" ... href="...">
   // (attributes may be in any order, extra stuff allowed)
@@ -139,102 +138,21 @@ async function inlineLocalCSS(html, baseDir) {
   });
 }
 
-// https://icons.getbootstrap.com/
-const HTML = `
-<!DOCTYPE html>
-<html lang="en">
-  <head>
-    <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/vytools/vyjs@v__VERSION__/css/definition_form.css">
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.0.2/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-EVSTQN3/azprG1Anm3QDgpJLIm9Nao0Yz1ztcQTwFspd3yD65VohhpuuCOmLASjC" crossorigin="anonymous">
-    <style>
-      #map1 {position:absolute; overflow: hidden; width:100vw; height: 100vh; }
-      .flip {transform: scale(-1,1);}
-      ul.scoredots { list-style-type: none; }
-      ul.scoredots span { height: 12px; width: 12px; border-radius: 50%; display: inline-block; }
-      .logos {position:absolute; top:15px; left:20px;}
-      .toolbar {position:absolute; top:20px; left:70px;}
-      .sidebar {position:absolute; top:70px; left:40px; max-width:400px; background-color: rgba(255,255,255,0.9);}
-      .alerts {position:absolute; bottom:10px; left:40px;}
-      .full {width:100vw; height: 100vh; overflow: hidden;}
-      .bi-play, .bi-pause, .bi-rewind {width: 24px; height: 24px; color: black;}
-    </style>
-    <svg xmlns="http://www.w3.org/2000/svg" style="display: none;">
-      <symbol id="check-circle-fill" fill="currentColor" viewBox="0 0 16 16">
-        <path d="M16 8A8 8 0 1 1 0 8a8 8 0 0 1 16 0zm-3.97-3.03a.75.75 0 0 0-1.08.022L7.477 9.417 5.384 7.323a.75.75 0 0 0-1.06 1.06L6.97 11.03a.75.75 0 0 0 1.079-.02l3.992-4.99a.75.75 0 0 0-.01-1.05z"/>
-      </symbol>
-      <symbol id="info-fill" fill="currentColor" viewBox="0 0 16 16">
-        <path d="M8 16A8 8 0 1 0 8 0a8 8 0 0 0 0 16zm.93-9.412-1 4.705c-.07.34.029.533.304.533.194 0 .487-.07.686-.246l-.088.416c-.287.346-.92.598-1.465.598-.703 0-1.002-.422-.808-1.319l.738-3.468c.064-.293.006-.399-.287-.47l-.451-.081.082-.381 2.29-.287zM8 5.5a1 1 0 1 1 0-2 1 1 0 0 1 0 2z"/>
-      </symbol>
-      <symbol id="exclamation-triangle-fill" fill="currentColor" viewBox="0 0 16 16">
-        <path d="M8.982 1.566a1.13 1.13 0 0 0-1.96 0L.165 13.233c-.457.778.091 1.767.98 1.767h13.713c.889 0 1.438-.99.98-1.767L8.982 1.566zM8 5c.535 0 .954.462.9.995l-.35 3.507a.552.552 0 0 1-1.1 0L7.1 5.995A.905.905 0 0 1 8 5zm.002 6a1 1 0 1 1 0 2 1 1 0 0 1 0-2z"/>
-      </symbol>
-    </svg>    
-  </head>
-  <body class="full">
-    <div id="map1"></div>
-    <div class="sidebar">
-      <div id="help" style="display: none;">
-        <ul>
-          <li>Click and drag on the map to pan, scroll to zoom, shift+scroll to speed up/slow down the simulation</li>
-          <li>Change the parameters and click the black button with the down arrow below to save and use new parameters</li>
-        </ul>
-      </div>
-      <div id="params" style="flex:1 1 auto;"></div>
-      <div class="scores"></div>
-    </div>
-    <div class="toolbar btn-group">
-        <button class="btn btn-sm btn-light help" type="button" title="Click for help">Help</button>
-        <button class="btn btn-sm btn-light playpause" type="button" title="Click to play/pause the simulation">
-            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" class="bi bi-play" viewBox="0 0 16 16">
-                <path d="M0 12V4a2 2 0 0 1 2-2h12a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H2a2 2 0 0 1-2-2m6.79-6.907A.5.5 0 0 0 6 5.5v5a.5.5 0 0 0 .79.407l3.5-2.5a.5.5 0 0 0 0-.814z"/>
-            </svg>
-            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" class="bi bi-pause" style="display:none" viewBox="0 0 16 16">
-                <path d="M0 12V4a2 2 0 0 1 2-2h12a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H2a2 2 0 0 1-2-2m6.25-7C5.56 5 5 5.56 5 6.25v3.5a1.25 1.25 0 1 0 2.5 0v-3.5C7.5 5.56 6.94 5 6.25 5m3.5 0c-.69 0-1.25.56-1.25 1.25v3.5a1.25 1.25 0 1 0 2.5 0v-3.5C11 5.56 10.44 5 9.75 5"/>
-            </svg>
-        </button>
-        <button class="btn btn-sm btn-light time" type="button">0 sec</button>
-        <button class="btn btn-sm btn-light speed" type="button" style="display:none">speed: 1</button>
-        <button class="btn btn-sm btn-light restart" type="button" title="Click to restart the simulation">
-            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" class="bi bi-rewind" viewBox="0 0 16 16">
-                <path d="M0 4v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V4a2 2 0 0 0-2-2H2a2 2 0 0 0-2 2m7.729 1.055A.5.5 0 0 1 8 5.5v1.886l3.21-2.293A.5.5 0 0 1 12 5.5v5a.5.5 0 0 1-.79.407L8 8.614V10.5a.5.5 0 0 1-.79.407l-3.5-2.5a.5.5 0 0 1 0-.814l3.5-2.5a.5.5 0 0 1 .519-.038"/>
-            </svg>
-        </button>
-        <button class="btn btn-sm btn-light follow" type="button" title="Click to track the leader during the simulation">Follow</button>
-        <button class="btn btn-sm btn-light hidemost" type="button" title="Click to show the names of all the participants during the simulation">Show All</button>
-    </div>
-    <div class="logos">
-      <svg xmlns:svg="http://www.w3.org/2000/svg" xmlns="http://www.w3.org/2000/svg" version="1.1" width="48" height="48" viewBox="0 0 48 48">
-          <g id="g3432" transform="scale(0.16) translate(-2,20)">
-              <path style="fill:#585858"
-                  d="m 174.18897,244.47141 c -7.72843,-3.82555 -11.64938,-12.02322 -12.72827,-26.61145 -1.14459,-15.4767 -5.6934,-26.70359 -16.12181,-39.79021 -9.46028,-11.87172 -8.69422,-17.23408 3.08309,-21.58139 14.32702,-5.28846 25.95278,-15.72301 33.34165,-29.92536 11.87882,-22.83259 7.85168,-55.991357 -9.04558,-74.479653 -12.83177,-14.040001 -36.38096,-18.447255 -54.37074,-10.175536 -14.69937,6.758787 -23.306343,22.49848 -22.310652,40.799795 1.036831,19.057494 12.802052,31.138044 30.305562,31.117784 15.44667,-0.0179 26.68777,-9.16818 28.10928,-22.881056 1.4854,-14.329227 -5.74265,-23.4155 -18.62682,-23.4155 -6.04387,0 -9.59513,1.655884 -13.78469,6.427536 -4.52132,5.149497 -4.96647,9.213652 -1.77316,16.188754 3.16335,6.90968 2.29858,8.61182 -2.78046,5.4728 -5.31366,-3.28402 -8.1779,-9.938624 -8.00101,-18.58909 0.34249,-16.749601 11.02548,-26.517729 29.35838,-26.844236 6.41498,-0.11425 8.37036,0.28935 13.5,2.786467 7.57911,3.689521 17.28637,13.291709 20.78273,20.557769 5.07666,10.550222 5.52656,24.975 1.11117,35.626636 -2.70441,6.52409 -10.1952,17.00801 -15.66799,21.92852 -11.13469,10.01104 -22.95014,14.64147 -37.22743,14.58929 C 104.46773,145.61161 91.66521,140.33319 79.776897,128.5361 58.430571,107.35357 50.708195,81.130248 57.393896,52.528834 c 1.975634,-8.45176 9.13497,-22.987475 14.885284,-30.221831 20.934784,-26.3376371 61.8115,-37.800731 98.73211,-27.6875364 16.44532,4.5046583 35.1945,16.0601344 47.63344,29.3574074 7.84412,8.385386 13.45608,16.692988 18.39263,27.227315 9.62866,20.547007 11.57426,40.838605 6.40729,66.824641 -4.61811,23.22572 -7.57134,31.32914 -25.14644,69 -5.38859,11.55 -11.9409,26.98478 -14.56071,34.29952 -5.89971,16.47254 -8.98177,21.92084 -13.45858,23.79138 -4.79472,2.00336 -11.2592,1.74288 -16.08995,-0.64832 z M 198.468,175.2408 c -0.57382,-5.08266 -4.02569,-12.26771 -6.3159,-13.14655 -1.94776,-0.74743 -3.58255,4.16757 -2.79049,8.38962 0.73793,3.93352 2.95481,8.67123 5.31616,11.36123 1.54061,1.75502 1.6405,1.75502 2.96258,0 0.92436,-1.22706 1.19285,-3.36953 0.82765,-6.6043 z"/>
-              <path style="fill:#2c2c2c"
-                  d="m 177.84222,245.52883 c -1.375,-0.44035 -1.825,-0.85574 -1,-0.92309 0.825,-0.0674 -0.0283,-0.87525 -1.89611,-1.79535 -3.76075,-1.85251 -8.67474,-8.83971 -10.03319,-14.26618 -0.48402,-1.93346 -1.17759,-7.52915 -1.54128,-12.43486 -0.36369,-4.90572 -1.71281,-12.23084 -2.99804,-16.27805 -2.45567,-7.73298 -8.90006,-19.54625 -13.67665,-25.07081 -3.0622,-3.54172 -4.21023,-6.74303 -3.68761,-10.28299 0.25344,-1.71664 1.52782,-2.64302 5.33986,-3.88168 14.92174,-4.84855 30.76482,-19.87073 37.48099,-35.53891 7.09593,-16.55414 7.48142,-36.96415 1.03192,-54.636187 -5.47595,-15.004458 -14.38028,-25.093579 -27.91258,-31.626577 -6.65554,-3.213098 -8.74052,-3.723534 -16.66481,-4.079809 -20.87086,-0.938349 -36.49287,7.066366 -44.413787,22.757612 -11.623309,23.025647 -5.57955,47.809141 13.884807,56.937061 4.75647,2.23058 6.92364,2.61503 14.58648,2.58758 7.69251,-0.0276 9.89158,-0.43955 15.13708,-2.83589 11.22476,-5.12789 16.6468,-13.59611 16.73172,-26.131866 0.10324,-15.237578 -8.33674,-24.519812 -22.26802,-24.490231 -5.01353,0.01064 -13.49399,3.460016 -16.31259,6.635032 -0.94149,1.060549 -2.65005,4.049329 -3.79679,6.641735 -1.14675,2.592405 -2.35143,4.713464 -2.67708,4.713464 -1.31838,0 0.60329,-11.918175 2.5309,-15.696601 3.9968,-7.834374 12.60617,-12.303399 23.70192,-12.303399 10.68706,0 26.60029,11.29705 31.4927,22.357162 7.07759,16.000058 2.78141,35.066444 -10.96056,48.642834 -12.03948,11.89441 -24.13208,17.33066 -38.57928,17.34341 C 98.068388,141.89277 78.140742,128.45375 66.824931,105.10629 60.383903,91.816784 58.393625,82.000095 59.115439,67.080607 60.513991,38.17331 75.752084,15.567229 102.34222,2.9526283 c 13.77805,-6.5364317 18.641,-7.5710571 38.28894,-8.1462289 21.85127,-0.6396718 30.92044,1.1449849 47.07663,9.2638699 38.48817,19.3412677 60.41667,59.3995367 55.20068,100.8388207 -1.57759,12.53343 -6.8257,33.50176 -11.5432,46.11974 -2.05629,5.5 -8.25089,19.9 -13.76579,32 -5.5149,12.1 -12.41709,28.69118 -15.33822,36.86928 -5.54212,15.51595 -9.29126,22.52304 -12.49987,23.36211 -1.04317,0.27279 -1.68404,0.84004 -1.42415,1.26055 0.25988,0.4205 -0.92643,1.04434 -2.63625,1.38631 -3.65362,0.73072 -4.52732,0.68867 -7.85877,-0.37825 z m 22.0475,-62.64392 c 1.4288,-4.32931 0.73487,-12.94246 -1.37078,-17.01435 -1.83163,-3.54197 -6.52254,-8.34173 -8.15257,-8.34173 -3.71764,0 -4.62668,11.96733 -1.44324,19 2.21926,4.90265 6.5666,10 8.52863,10 0.67945,0 1.77653,-1.63976 2.43796,-3.64392 z"/>
-          </g>
-      </svg>        
-    </div>
-    <div class="alerts"></div>
-    __SCRIPT__
-  </body>
-</html>
-`
-
 async function build() {
   let html = '';
   let outHtml = '';
   let baseDir = '';
   if (process.argv.length < 4) {
-    console.log('Usage: node bundle-html.js input.html output.html');
-    console.log('Or: node bundle-html.js 4.0.5 input.js output.html');
+    console.log('Usage: node bundle-html.js input.html/.js output.html');
     return;
-  } else if (process.argv.length == 4) {
+  } else if (process.argv[2].endsWith('.html')) {
     html = await fs.readFile(process.argv[2], 'utf8');
     outHtml = process.argv[3];
     baseDir = path.dirname(process.argv[2]);
-  } else if (process.argv.length == 5) {
-    console.log(process.argv[3])
-    html = HTML.replace('__VERSION__', process.argv[2])
-      .replace('__SCRIPT__','<script type="module" src="'+process.argv[3]+'"></script>')
-    outHtml = process.argv[4];
+  } else {
+    let HTML = await fs.readFile('vydisp.html', 'utf8');
+    html = HTML.replace('__SCRIPT__','<script type="module" src="'+process.argv[2]+'"></script>')
+    outHtml = process.argv[3];
   }
 
   if (outHtml != '') {

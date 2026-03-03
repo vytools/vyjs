@@ -1,11 +1,10 @@
-import { setup_generic_map } from "./generic_map.js";
-import * as DF from "./definition_form.js";
+import { setup_generic_map } from "./js/generic_map.js";
+import * as DF from "./js/definition_form.js";
 
 export function setup(VYD) {
 
   let SIM = null;
   VYD.FOLLOW = false;
-  VYD.HIDE_MOST = true;
   VYD.PLAYBACK_SPEED_GEAR = 1;
   const HELPDIV = document.querySelector('#help');
   const TOOLBAR = document.querySelector('div.toolbar');
@@ -15,10 +14,43 @@ export function setup(VYD) {
   VYD.MAPFUNCS = setup_generic_map(MAPDIV, VYD.DRAWDATA, VYD.DRAWEXT);
   const PLAYICON = document.querySelector('svg.bi-play');
   const PAUSICON = document.querySelector('svg.bi-pause');
-  const PLAYPAUS = document.querySelector('button.playpause');
+
+  const switch_direction = () => {
+      VYD.PLAYBACK_SPEED_GEAR = -VYD.PLAYBACK_SPEED_GEAR;
+      if (VYD.PLAYBACK_SPEED_GEAR > 0) {
+        [PLAYICON,PAUSICON].forEach(b => {
+          b.classList.remove('flip');
+          b.classList.add('black');
+        });
+      } else {
+        [PLAYICON,PAUSICON].forEach(b => {
+          b.classList.remove('black');
+          b.classList.add('flip');
+        });
+      }
+  }
+  const toggle_play_pause = () => {
+    if (!SIM) {
+      indicate_(true);
+      SIM = setInterval(() => {
+        if (!VYD.step()) {
+          if (VYD.PLAYBACK_SPEED_GEAR < 0) switch_direction();
+          indicate_(false);
+          clearInterval(SIM);
+          SIM = null;
+        }
+      },50);
+    } else {
+      indicate_(false);
+      clearInterval(SIM);
+      SIM = null;
+    }    
+  }
 
   MAPDIV.addEventListener('mousedown', (ev) => {
     SPEEDBTN.style.display = 'none';
+    if (ev.detail == 2 && ev.shiftKey) toggle_play_pause();
+    if (ev.detail == 2 && ev.ctrlKey) switch_direction();
     VYD.DRAWDATA.disable_map_events = false;
   });
   MAPDIV.addEventListener('wheel', (ev) => {
@@ -33,15 +65,13 @@ export function setup(VYD) {
     } else {
       VYD.DRAWDATA.disable_map_events = false;
     }
-  });
+  },{capture:true});
 
   const tog_ = (b,to_dark) => {
     b.classList.add((to_dark) ? 'btn-dark' : 'btn-light');
     b.classList.remove((!to_dark) ? 'btn-dark' : 'btn-light');
   }
   const indicate_ = (pause) => {
-    PLAYPAUS.classList.add((pause) ? 'btn-secondary' : 'btn-light');
-    PLAYPAUS.classList.remove((!pause) ? 'btn-secondary' : 'btn-light');
     PAUSICON.style.display = (!pause) ? 'none' : '';
     PLAYICON.style.display = (!pause) ? '' : 'none';
   }
@@ -51,27 +81,8 @@ export function setup(VYD) {
     if (b.classList.contains('follow')) {
       VYD.FOLLOW = !VYD.FOLLOW;
       tog_(b, VYD.FOLLOW);
-    } else if (b.classList.contains('hidemost')) {
-      VYD.HIDE_MOST = !VYD.HIDE_MOST;
-      tog_(b,!VYD.HIDE_MOST);
     } else if (b.classList.contains('playpause')) {
-      if (ev.detail == 2) { //dblclick
-        VYD.PLAYBACK_SPEED_GEAR = -VYD.PLAYBACK_SPEED_GEAR;
-        if (VYD.PLAYBACK_SPEED_GEAR > 0) { b.classList.remove('flip'); } else { b.classList.add('flip'); }
-      } else if (!SIM) {
-        indicate_(true);
-        SIM = setInterval(() => {
-          if (!VYD.step(true)) {
-            clearInterval(SIM);
-            indicate_(false);
-            SIM = null;
-          }
-        },50);
-      } else {
-        indicate_(false);
-        clearInterval(SIM);
-        SIM = null;
-      }
+      toggle_play_pause();
     } else if (b.classList.contains('restart')) {
       VYD.restart();
     }
