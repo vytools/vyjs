@@ -121,19 +121,20 @@ export function setup(VYD) {
     }
   }
 
+  window.VYDISPLOG = false;
   window.addEventListener('message',function(e) {
     try {
+      if (window.VYDISPLOG) console.log('** vydisp.js received',e.data);
       if (e.source == window.parent && e.data.topic == 'results_json') {
-          console.log('** Received "results_json" message',e.data.data);
         try {
           DEFFORM.reload(e.data.data);
         } catch(err) {
           alert(`Failed to parse results.vy.json. Is the syntax correct? ${err}`,8);
         }
       } else if (e.source == window.parent && e.data.topic == 'child_results') {
-          console.log('** Received "child_results" message');
+      } else if (e.source == window.parent && e.data.topic == 'vydisplog') {
+        window.VYDISPLOG = !window.VYDISPLOG;
       } else if (e.source == window.parent && e.data.topic == 'tool_data' && e.data.data) {
-        console.log('** Received "tool_data" message',e.data.data);
         if (e.data.data && e.data.data.pblc) set_vytools_data(e.data.data);
       } else {
         console.log('window.addEventListener ignoring message: ', e.data);

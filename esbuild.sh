@@ -7,7 +7,7 @@ while true; do
     read -p "Do you wish to push the image? " yn
     case $yn in
         [Yy]* )
-            docker buildx build --push --tag vytools/esbuild:latest --platform linux/amd64 .
+            docker buildx build -f esbuild/Dockerfile --push --tag vytools/esbuild:latest --platform linux/amd64 .
             break;;
         [Nn]* ) exit;;
         * ) echo "Please answer yes or no.";;
