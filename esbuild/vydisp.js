@@ -111,8 +111,8 @@ export function setup(VYD) {
       entries = child_results;
     } else if (pblc && pblc.run_results && pblc.run_results.results) {
       entries.push(pblc.run_results.results);
-    } else if (pblc) {
-      let cnfg = (pblc.share_data && pblc.share_data.config) ? pblc.share_data.config : null;
+    } else if (pblc && pblc.share_data && pblc.share_data.config) {
+      let cnfg = pblc.share_data.config;
       entries.push({config:cnfg});
     }
     if (entries && entries.length > 0) {
@@ -172,7 +172,6 @@ export function setup(VYD) {
       }
     }
   }
-
   const DEFFORM = DF.init(document.querySelector('#params'), VYD.defobj);
   DEFFORM.reload(VYD.defobj.object);
   return {set_vytools_data};

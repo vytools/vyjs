@@ -374,9 +374,9 @@ const reload = function(container, topdef, objct, D) {
 export function init(container, D) {
     // D={definitions, top, functions, object}
     if (!D.hasOwnProperty('definitions')) {
-        console.log('Second argument (D) must have fields "definitions"');
-    } else if (!D.top || D.definitions.hasOwnProperty(D.top)) {
-        console.log('Second argument (D) must have fields "top" and D.definitions[D.top] must exist');
+        console.log('Second argument "D" to init(container,D) must have field "definitions"');
+    } else if (!D.top || !D.definitions.hasOwnProperty(D.top)) {
+        console.log('Second argument "D" to init(container,D) must have fields "top" and "definitions" and D.definitions[D.top] must exist');
     }
     let topdef = {type:D.top};
     if (!D.functions) D.functions = {};
