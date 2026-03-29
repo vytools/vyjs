@@ -16,6 +16,7 @@
 // CANVAS.addEventListener('mousewheel',(e) => { CTX.handleScroll(e) }, false);
 
 const trackTransforms = function(ctx) {
+  if (!ctx) return
   var svg = document.createElementNS("http://www.w3.org/2000/svg",'svg');
   var xform = svg.createSVGMatrix();
   ctx.get_transform = function(){ 
@@ -72,8 +73,12 @@ const trackTransforms = function(ctx) {
   var pt  = svg.createSVGPoint();
   ctx.transformedPoint = function(x,y){
     pt.x=x; pt.y=y;
-    let ptt = pt.matrixTransform(xform.inverse());
-    return {x:ptt.x, y:ptt.y};
+    try {
+      let ptt = pt.matrixTransform(xform.inverse());
+      return {x:ptt.x, y:ptt.y};
+    } catch(e) {
+      return {x:0, y:0};
+    }
   }
 }
 

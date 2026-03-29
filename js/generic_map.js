@@ -2,6 +2,7 @@ import { initialize_map } from "./zoom_pan_canvas.js";
 import { version } from "./version.js";
 
 let draw_arc = function(arc, ctx) {
+  if (!ctx || !arc) return;
   let trnsfrm = ctx.get_transform();
   if (arc.stroke_width) ctx.lineWidth = arc.stroke_width / trnsfrm.a;
   if (arc.fill) ctx.fillStyle = arc.fill;
@@ -33,7 +34,7 @@ let draw_arc = function(arc, ctx) {
 }
 
 let draw_image = function(img, ctx) {
-  if (img.image.naturalWidth == undefined) return;
+  if (img.image.naturalWidth == undefined || !ctx || !img) return;
   ctx.save();
   ctx.translate(img.x, img.y);
   ctx.rotate(img.rotation);
@@ -42,7 +43,7 @@ let draw_image = function(img, ctx) {
 }
 
 let draw_polygon = function(poly, ctx) {
-  if (poly.points.length < 2) return;
+  if (!poly || poly.points.length < 2 || !ctx) return;
   let trnsfrm = ctx.get_transform();
   if (poly.stroke_width) ctx.lineWidth = poly.stroke_width / trnsfrm.a;
   if (poly.fill) ctx.fillStyle = poly.fill;
@@ -65,6 +66,7 @@ let draw_polygon = function(poly, ctx) {
 }
 
 let draw_circle = function(circ, ctx) {
+  if (!ctx || !circ) return;
   let trnsfrm = ctx.get_transform();
   let radius = circ.radius;
   if (circ.scale_with_zoom) radius /= trnsfrm.a;
@@ -78,6 +80,7 @@ let draw_circle = function(circ, ctx) {
 }
 
 let draw_text = function(txt, ctx) {
+  if (!ctx || !txt) return;
   let font = txt.font;
   if (font && txt.scale_with_zoom) {
     let splt = txt.font.split('px');
@@ -100,6 +103,7 @@ let draw_text = function(txt, ctx) {
 }
 
 let draw_thing = function(thing, ctx, toggleable, togname) {
+  if (!ctx) return;
   try {
     if (thing && typeof(thing) == "object") {
       if (thing.draw_toggle) {
@@ -141,6 +145,7 @@ let draw_thing = function(thing, ctx, toggleable, togname) {
 }
 
 let draw = function(ctx, data, togname) {
+  if (!ctx) return;
   ctx.save();
   ctx.clear_all();
   ctx.scale(1,-1);
@@ -153,6 +158,7 @@ let draw = function(ctx, data, togname) {
 }
 
 let center_map = function(ctx, xc, yc) { // x, y, map coordinates of center and desired width/height
+  if (!ctx) return;
   let t = ctx.get_transform();
   let w = ctx.canvas.width;
   let h = ctx.canvas.height;
@@ -162,6 +168,7 @@ let center_map = function(ctx, xc, yc) { // x, y, map coordinates of center and 
 }
 
 let center_map_with_dimensions = function(ctx, xc, yc, width,height) { // x, y, map coordinates of center and desired width/height
+  if (!ctx) return;
   let t = ctx.get_transform();
   let w = ctx.canvas.width;
   let h = ctx.canvas.height;
@@ -192,14 +199,17 @@ export function setup_generic_map(contentdiv, DATA, RenderFuncs) {
   let TOGGLEABLE = contentdiv.querySelector('div.toggleable');
 
   const resize = function() {
+    const w = contentdiv.offsetWidth;
+    const h = contentdiv.offsetHeight;
+    if (w === 0 || h === 0) return;
     let transform = null;
     if (CTX) {
       transform = CTX.get_transform();
     }
     CTX = initialize_map(CANVAS);
     if (RenderFuncs) CTX.RenderFuncs = RenderFuncs;
-    CANVAS.width = contentdiv.offsetWidth;
-    CANVAS.height = contentdiv.offsetHeight;
+    CANVAS.width = w;
+    CANVAS.height = h;
     // console.log('w','h',CANVAS.width, CANVAS.height)
     CTX.SCREEN.lastX=CANVAS.width/2, CTX.SCREEN.lastY=CANVAS.height/2;
     if (transform) CTX.set_transform(transform);
@@ -207,6 +217,10 @@ export function setup_generic_map(contentdiv, DATA, RenderFuncs) {
   }
   resize();
   window.onresize = resize;
+  if (typeof ResizeObserver !== 'undefined' && !CTX) {
+    const ro = new ResizeObserver(() => { if (!CTX) { resize(); if (CTX) ro.disconnect(); } });
+    ro.observe(contentdiv);
+  }
   TOGGLEABLE.addEventListener('click',(e) => {
     let tog = e.target.closest('button');
     if (tog && tog.innerText) draw(CTX, DATA, tog.innerText);
