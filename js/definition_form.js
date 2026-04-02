@@ -142,7 +142,9 @@ export function create_object_of_type(optdef, definitions) {
     } else if (definitions.hasOwnProperty(optdef.type)) {
         let obj = {};
         definitions[optdef.type].forEach(d => {
-            if (d.hasOwnProperty('length')) {
+            if (d.hasOwnProperty('default')) {
+                obj[d.name] = JSON.parse(JSON.stringify(d.default));
+            } else if (d.hasOwnProperty('length')) {
                 obj[d.name] = [];
                 let n = parseInt(d.length);
                 if (~isNaN(n)) {

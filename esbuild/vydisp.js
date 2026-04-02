@@ -2,7 +2,6 @@ import { setup_generic_map } from "./js/generic_map.js";
 import * as DF from "./js/definition_form.js";
 
 export function setup(VYD) {
-
   let SIM = null;
   VYD.FOLLOW = false;
   VYD.PLAYBACK_SPEED_GEAR = 1;
@@ -104,38 +103,29 @@ export function setup(VYD) {
   }
 
   const set_vytools_data = function(data) {
-    let pblc = data.pblc;
-    let child_results = data.child_results;
-    let entries = [];
-    if (child_results && child_results.length > 0) {
-      entries = child_results;
-    } else if (pblc && pblc.run_results && pblc.run_results.results) {
-      entries.push(pblc.run_results.results);
-    } else if (pblc && pblc.share_data && pblc.share_data.config) {
-      let cnfg = pblc.share_data.config;
-      entries.push({config:cnfg});
-    }
-    if (entries && entries.length > 0) {
-      DEFFORM.reload(entries[0]);
-      VYD.set_entries(entries);
-    }
+    if (!data) return;
+    VYD.IS_ONLINE = data.is_online;
+    VYD.LEVL = data.levl;
+    if (data.vycnfig) DEFFORM.reload({config:data.vycnfig});
+    if (data.vyrslts) VYD.set_vyrslts(data.vyrslts);
   }
 
-  window.VYDISPLOG = false;
   window.addEventListener('message',function(e) {
     try {
-      if (window.VYDISPLOG) console.log('** vydisp.js received',e.data);
+      console.log('** vydisp.js received',e.data);
       if (e.source == window.parent && e.data.topic == 'results_json') {
+        // data is the parsed contents of vyrslts.json.
+        // It should match the defobj.top schema and usually has a field "config".
+        // DEFFORM.reload expects the full top-level object; 
+        // VYD.set_vyrslts receives it as a single-item array.
         try {
           DEFFORM.reload(e.data.data);
+          VYD.set_vyrslts([e.data.data]);
         } catch(err) {
-          alert(`Failed to parse results.vy.json. Is the syntax correct? ${err}`,8);
+          alert(`Failed to parse vyrslts.json. Is the syntax correct? ${err}`,8);
         }
-      } else if (e.source == window.parent && e.data.topic == 'child_results') {
-      } else if (e.source == window.parent && e.data.topic == 'vydisplog') {
-        window.VYDISPLOG = !window.VYDISPLOG;
       } else if (e.source == window.parent && e.data.topic == 'tool_data' && e.data.data) {
-        if (e.data.data && e.data.data.pblc) set_vytools_data(e.data.data);
+        set_vytools_data(e.data.data);
       } else {
         console.log('window.addEventListener ignoring message: ', e.data);
       }
@@ -151,9 +141,9 @@ export function setup(VYD) {
       let output = obj;
       if (typ == undefined && path == '_') { // Loading from file
         if (obj.hasOwnProperty('config')) { // Loading results
-          console.log('** Attempting to load "results.vy.json" from file')
+          console.log('** Attempting to load "vyrslts.json" from file')
         } else {
-          console.log('** Attempting to load "config.vy.json" from file')
+          console.log('** Attempting to load "vycnfig.json" from file')
           output = {config:obj};
         }
       } else if (path == '_') { // Loaded top level (could be after loaded from file)
@@ -162,17 +152,37 @@ export function setup(VYD) {
     }
   }
 
+  VYD.download = DF.download; //(filename, obj);
   if (!VYD.defobj.functions.on_save_item) {
     VYD.defobj.functions.on_save_item = function(typ, path, obj) {
-      if (path == '_') {
+      console.log('output',typ, path, obj)
+      if (path == '_' && VYD.IS_ONLINE) {
         window.parent.postMessage({topic:'save', data:{'pblc.share_data.config':obj.config}},'*');
-      } else {
-        window.parent.postMessage({topic:'save_to_file', data:{data:obj,defintion:typ}},'*');
-        // if (filename) DF.download(filename,{data:obj,defintion:typ});
+      } else if (path == '_') {
+        window.parent.postMessage({topic:'save_vycnfig', data:obj.config},'*');
       }
     }
   }
-  const DEFFORM = DF.init(document.querySelector('#params'), VYD.defobj);
-  DEFFORM.reload(VYD.defobj.object);
-  return {set_vytools_data};
+  let DEFFORM = {};
+  VYD.fin = () => {
+    window.parent.postMessage({topic:'request_tool_data'},'*');
+    set_vytools_data(window.TOOL_DATA);  
+  }
+  try {
+    DEFFORM = DF.init(document.querySelector('#params'), VYD.defobj);
+    VYD.defobj.reload = DEFFORM.reload;
+  } catch (err) {
+    let msg = `Failed to initialize definitions: ${err}`;
+    alert(msg, 8);
+    throw new Error(msg);
+  }
+  try {
+    VYD.defobj.reload(VYD.defobj.object);
+  } catch (err) {
+    let msg = `Failed to load default object: ${err}: ${JSON.stringify(VYD.defobj.object,null,2)}`;
+    alert(msg, 8);
+    throw new Error(msg);
+  }
 }
+
+window.TOOL_DATA=null;

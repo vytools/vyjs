@@ -105,7 +105,7 @@ export function arc_from_states(xyq0, xyq1) {
   }
 }
 
-const HPIXD = 2
+const HPIXD = 4
 const HPIXR = 0.7;
 const sgn = function(x) {  return (x == 0) ? 0 : ((x > 0) ? 1 : -1);  }
 const nrm = function(a) { return Math.hypot(a.x, a.y); }
@@ -180,7 +180,7 @@ export const arc_path_draw = function(obj,ctx) {
 export class ArcPath {
   constructor(is_closed_loop) {
     this.is_closed_loop = is_closed_loop;
-    this.node_pix = 8;
+    this.node_pix = 12;
     this.arc_color = 'gray';
     this.arc_width = 1;
     this.nodes = [];
@@ -267,7 +267,7 @@ export function mouse_move(MAPFUNCS, arcpath, e) {
 }
 
 export function mouse_down(MAPFUNCS, arcpath, e) { 
-  if (!arcpath) return;
+  if (!arcpath || !MAPFUNCS || !MAPFUNCS.CTX) return;
   let P = MAPFUNCS.eventToPosition(e);
   let trnsfrm = MAPFUNCS.CTX.get_transform();
   let insdel = e.buttons == 1 && e.detail == 2;
@@ -285,6 +285,8 @@ export function mouse_down(MAPFUNCS, arcpath, e) {
         return true;
       }
     } else if (!insdel && screendist(MAPFUNCS, {x, y}, P) <= arcpath.node_pix*HPIXR) {
+      P.x = N.xyq.x; // Move down location to node
+      P.y = N.xyq.y;
       arcpath.down_loc = {node_index:ii, P};
       return true;
     }

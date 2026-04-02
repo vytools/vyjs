@@ -49,7 +49,7 @@ function extractImportMap(html) {
   }
 }
 
-async function inlineLocalScript(html, baseDir) {
+async function inlineLocalScript(html, baseDir, minify) {
   const importMap = extractImportMap(html);
 
   const scriptRegex =
@@ -108,7 +108,7 @@ async function inlineLocalScript(html, baseDir) {
       entryPoints: [abs],
       bundle: true,
       format: 'esm',
-      minify: true,
+      minify,
       write: false,
       plugins,
     });
@@ -154,11 +154,12 @@ async function build() {
     html = HTML.replace('__SCRIPT__','<script type="module" src="'+process.argv[2]+'"></script>')
     outHtml = process.argv[3];
   }
+  let minify = !(process.argv.length == 5 && process.argv[4]=='-no-minify');
 
   if (outHtml != '') {
     let output = html;
     // 1) Inline local <script type="module" src="...">
-    output = await inlineLocalScript(output, baseDir);
+    output = await inlineLocalScript(output, baseDir, minify);
     // 2) Inline local <link rel="stylesheet" href="...">
     output = await inlineLocalCSS(output, baseDir);
     await fs.writeFile(outHtml, output, 'utf8');

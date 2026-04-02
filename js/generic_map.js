@@ -180,142 +180,152 @@ let center_map_with_dimensions = function(ctx, xc, yc, width,height) { // x, y, 
   ctx.set_transform(t);
 }
 
-export function setup_generic_map(contentdiv, DATA, RenderFuncs) {
-  let CANVAS = document.createElement('canvas');
-  let CTX = null;
-  if (!DATA.hasOwnProperty('measuring_tool')) {
-    DATA.measuring_tool = {
-      draw_toggle:'Measuring Tool',
-      _draw_toggle_off_:true,
-      points:{draw_type:'polygon',points:[{x:0,y:0},{x:0,y:0}],stroke_width:3,stroke:'black'},
-      text:{draw_type:'text',font:'20px Arial',scale_with_zoom:true,fill_text:'',x:0,y:0,fill:'black'}
+export class GenericMap {
+  constructor(contentdiv, DATA, RenderFuncs) {
+    this.CTX = null;
+    this.CANVAS = document.createElement('canvas');
+    this._contentdiv = contentdiv;
+    this._data = DATA;
+    this._renderFuncs = RenderFuncs;
+
+    if (!DATA.hasOwnProperty('measuring_tool')) {
+      DATA.measuring_tool = {
+        draw_toggle:'Measuring Tool',
+        _draw_toggle_off_:true,
+        points:{draw_type:'polygon',points:[{x:0,y:0},{x:0,y:0}],stroke_width:3,stroke:'black'},
+        text:{draw_type:'text',font:'20px Arial',scale_with_zoom:true,fill_text:'',x:0,y:0,fill:'black'}
+      }
     }
+
+    contentdiv.appendChild(this.CANVAS);
+    contentdiv.insertAdjacentHTML('beforeend',`
+    <div class="toggleable form-group" style="position: absolute; bottom:30px; right:10px; width:200px; max-height:calc(100% - 50px);overflow-y:auto">
+    </div>`);
+    this._toggleable = contentdiv.querySelector('div.toggleable');
+
+    this.resize();
+    if (typeof ResizeObserver !== 'undefined') {
+      const ro = new ResizeObserver(() => this.resize());
+      ro.observe(contentdiv);
+    }
+
+    this._toggleable.addEventListener('click',(e) => {
+      let tog = e.target.closest('button');
+      if (tog && tog.innerText) draw(this.CTX, this._data, tog.innerText);
+    });
+    this.CANVAS.addEventListener('mousedown',(e) => {
+      if (this._data.disable_map_events) {
+        return;
+      } else if (e.buttons == 1 && e.shiftKey && this._data.measuring_tool && !this._data.measuring_tool._draw_toggle_off_ && this.CTX) {
+        let p = this.CTX.eventToPosition(e); p.y = -p.y;
+        this._data.measuring_tool.active = true;
+        this._data.measuring_tool.points.points[0] = p;
+        this._data.measuring_tool.points.points[1] = p;
+      }
+      if (this.CTX) this.CTX.handleMouseDown(e);
+    }, false);
+    this.CANVAS.addEventListener('mousemove',(e) => {
+      if (this._data.disable_map_events) {
+        return;
+      } else if (e.buttons == 1 && e.shiftKey && this._data.measuring_tool && this._data.measuring_tool.active && !this._data.measuring_tool._draw_toggle_off_ && this.CTX) {
+        this._data.measuring_tool.points.points[1] = this.CTX.eventToPosition(e);
+        this._data.measuring_tool.points.points[1].y = -this._data.measuring_tool.points.points[1].y;
+        let p = this._data.measuring_tool.points.points;
+        let a = Math.atan2(p[1].y-p[0].y,p[1].x-p[0].x);
+        let d = Math.hypot(p[1].y-p[0].y,p[1].x-p[0].x);
+        this._data.measuring_tool.text.x = p[1].x;
+        this._data.measuring_tool.text.y = p[1].y;
+        this._data.measuring_tool.text.align = (Math.abs(a)>Math.PI/2) ? 'right' : 'left';
+        this._data.measuring_tool.text.fill_text = d.toFixed(3);
+        draw(this.CTX, this._data, null);
+      } else if (this.CTX && this.CTX.handleMouseMove(e)) {
+        draw(this.CTX, this._data, null);
+      } else if (this.CTX) {
+        this.CTX.draw_mouse();
+      }
+    }, false);
+    this.CANVAS.addEventListener('mouseup',(e) => {
+      if (this.CTX && this._data.measuring_tool && !this._data.measuring_tool._draw_toggle_off_ && this._data.measuring_tool.active) {
+        this._data.measuring_tool.active = false;
+        draw(this.CTX, this._data, null);
+      }
+      if (this.CTX) this.CTX.handleMouseUp(e);
+    }, false);
+    this.CANVAS.addEventListener('wheel',(e) => {
+      if (this._data.disable_map_events || !this.CTX) return;
+      this.CTX.handleScroll(e); draw(this.CTX, this._data, null);
+    }, {passive:false});
+    this.CANVAS.addEventListener('mousewheel',(e) => {
+      if (this._data.disable_map_events || !this.CTX) return;
+      this.CTX.handleScroll(e); draw(this.CTX, this._data, null);
+    }, {passive:false});
   }
 
-  contentdiv.appendChild(CANVAS);
-  contentdiv.insertAdjacentHTML('beforeend',`
-  <div class="toggleable form-group" style="position: absolute; bottom:30px; right:10px; width:200px; max-height:calc(100% - 50px);overflow-y:auto">
-  </div>`);
-  let TOGGLEABLE = contentdiv.querySelector('div.toggleable');
-
-  const resize = function() {
-    const w = contentdiv.offsetWidth;
-    const h = contentdiv.offsetHeight;
+  resize() {
+    const w = this._contentdiv.offsetWidth;
+    const h = this._contentdiv.offsetHeight;
     if (w === 0 || h === 0) return;
-    let transform = null;
-    if (CTX) {
-      transform = CTX.get_transform();
-    }
-    CTX = initialize_map(CANVAS);
-    if (RenderFuncs) CTX.RenderFuncs = RenderFuncs;
-    CANVAS.width = w;
-    CANVAS.height = h;
-    // console.log('w','h',CANVAS.width, CANVAS.height)
-    CTX.SCREEN.lastX=CANVAS.width/2, CTX.SCREEN.lastY=CANVAS.height/2;
-    if (transform) CTX.set_transform(transform);
-    draw(CTX, DATA, null);
+    let transform = this.CTX ? this.CTX.get_transform() : null;
+    this.CTX = initialize_map(this.CANVAS);
+    if (this._renderFuncs) this.CTX.RenderFuncs = this._renderFuncs;
+    this.CANVAS.width = w;
+    this.CANVAS.height = h;
+    this.CTX.SCREEN.lastX = this.CANVAS.width/2;
+    this.CTX.SCREEN.lastY = this.CANVAS.height/2;
+    if (transform) this.CTX.set_transform(transform);
+    draw(this.CTX, this._data, null);
   }
-  resize();
-  window.onresize = resize;
-  if (typeof ResizeObserver !== 'undefined' && !CTX) {
-    const ro = new ResizeObserver(() => { if (!CTX) { resize(); if (CTX) ro.disconnect(); } });
-    ro.observe(contentdiv);
+
+  draw() { draw(this.CTX, this._data, null); }
+
+  eventToPosition(e) {
+    if (!this.CTX) return;
+    let P = this.CTX.eventToPosition(e);
+    P.y = -P.y; // because of the -1 scale applied above
+    return P;
   }
-  TOGGLEABLE.addEventListener('click',(e) => {
-    let tog = e.target.closest('button');
-    if (tog && tog.innerText) draw(CTX, DATA, tog.innerText);
-  })
-  CANVAS.addEventListener('mousedown',(e) => { 
-    if (DATA.disable_map_events) {
-      return
-    } else if (e.buttons == 1 && e.shiftKey && DATA.measuring_tool && !DATA.measuring_tool._draw_toggle_off_) {
-      let p = CTX.eventToPosition(e); p.y = -p.y;
-      DATA.measuring_tool.active = true;
-      DATA.measuring_tool.points.points[0] = p;
-      DATA.measuring_tool.points.points[1] = p;
-    }
-    CTX.handleMouseDown(e) 
-  }, false);
-  CANVAS.addEventListener('mousemove',(e) => { 
-    if (DATA.disable_map_events) {
-      return;
-    } else if (e.buttons == 1 && e.shiftKey && DATA.measuring_tool && DATA.measuring_tool.active && !DATA.measuring_tool._draw_toggle_off_) {
-      DATA.measuring_tool.points.points[1] = CTX.eventToPosition(e);
-      DATA.measuring_tool.points.points[1].y = -DATA.measuring_tool.points.points[1].y;
-      let p = DATA.measuring_tool.points.points;
-      let a = Math.atan2(p[1].y-p[0].y,p[1].x-p[0].x);
-      let d = Math.hypot(p[1].y-p[0].y,p[1].x-p[0].x);
-      DATA.measuring_tool.text.x = p[1].x;
-      DATA.measuring_tool.text.y = p[1].y;
-      DATA.measuring_tool.text.align = (Math.abs(a)>Math.PI/2) ? 'right' : 'left';
-      DATA.measuring_tool.text.fill_text = d.toFixed(3);
-      draw(CTX, DATA, null);
-    } else if (CTX.handleMouseMove(e)) {
-      draw(CTX, DATA, null);
-    } else {
-      CTX.draw_mouse();
-    }
-  }, false);
-  CANVAS.addEventListener('mouseup',(e) => { 
-    // if (DATA.disable_map_events) return;
-    if (DATA.measuring_tool && !DATA.measuring_tool._draw_toggle_off_ && DATA.measuring_tool.active) {
-      DATA.measuring_tool.active = false;
-      draw(CTX, DATA, null);
-    }
-    CTX.handleMouseUp(e) 
-  }, false);
-  CANVAS.addEventListener('wheel',(e) => { 
-    if (DATA.disable_map_events) return;
-    CTX.handleScroll(e); draw(CTX,DATA, null);    
-  }, {passive:false});
-  CANVAS.addEventListener('mousewheel',(e) => { 
-    if (DATA.disable_map_events) return;
-    CTX.handleScroll(e); draw(CTX,DATA, null);        
-  }, {passive:false});
-  return {
-    draw:() => { draw(CTX, DATA, null) },
-    resize:() => { resize() },
-    eventToPosition:(e) => { 
-      let P = CTX.eventToPosition(e);
-      P.y = -P.y; // because of the -1 scale applied above
-      return P;
-    },
-    centerMap:(x,y) => { center_map(CTX,x,y); },
-    centerMapWithDimensions:(x,y,width,height) => { center_map_with_dimensions(CTX,x,y,width,height); },
-    positionToScreen:(x,y) => {
-      return CTX.positionToScreen(x,-y);
-    },
-    CANVAS:CANVAS,
-    CTX:CTX,
-    export:(fname) => {
-      let html = `<html><head><meta content="text/html;charset=utf-8" http-equiv="Content-Type">
+
+  centerMap(x, y) { center_map(this.CTX, x, y); }
+
+  centerMapWithDimensions(x, y, width, height) { center_map_with_dimensions(this.CTX, x, y, width, height); }
+
+  positionToScreen(x, y) {
+    if (!this.CTX) return;
+    return this.CTX.positionToScreen(x, -y);
+  }
+
+  export(fname) {
+    let html = `<html><head><meta content="text/html;charset=utf-8" http-equiv="Content-Type">
 <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.0.2/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-EVSTQN3/azprG1Anm3QDgpJLIm9Nao0Yz1ztcQTwFspd3yD65VohhpuuCOmLASjC" crossorigin="anonymous">
 <style>.full {position:absolute;top:0px;left:0px;width:100%; height:100%;overflow:none}</style></head>
 <body class="full"><div id="map" class="full"></div>
 <script type="module">import { setup_generic_map } from "https://cdn.jsdelivr.net/gh/vytools/vyjs@v${version}/js/generic_map.js";
-let DRAW_EXT = ${JSON.stringify(RenderFuncs, (k, v) => { return (typeof v === "function") ? v.toString() : v;}, 2)};
+let DRAW_EXT = ${JSON.stringify(this._renderFuncs, (k, v) => { return (typeof v === "function") ? v.toString() : v;}, 2)};
 for (const key in DRAW_EXT) {
   if (typeof DRAW_EXT[key] === "string" && DRAW_EXT[key].startsWith("function")) {
     DRAW_EXT[key] = eval(\`(\$\{DRAW_EXT[key]})\`);
   }
 }
-let DRAW_DATA = ${JSON.stringify(DATA,null,1)};
+let DRAW_DATA = ${JSON.stringify(this._data,null,1)};
 let MAPFUNCS = setup_generic_map(document.querySelector('#map'), DRAW_DATA, DRAW_EXT);
 </script>
 </body></html>`;
-      if (fname) {
-        const blob = new Blob([html], { type: 'text/html' });
-        const a = document.createElement('a');
-        let url = URL.createObjectURL(blob);
-        a.href = url;
-        a.download = fname;
-        document.body.appendChild(a);
-        a.click();
-        document.body.removeChild(a);  
-        URL.revokeObjectURL(url);
-      } else {
-        return html;
-      }
+    if (fname) {
+      const blob = new Blob([html], { type: 'text/html' });
+      const a = document.createElement('a');
+      let url = URL.createObjectURL(blob);
+      a.href = url;
+      a.download = fname;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+    } else {
+      return html;
     }
-  };
+  }
+}
+
+export function setup_generic_map(contentdiv, DATA, RenderFuncs) {
+  return new GenericMap(contentdiv, DATA, RenderFuncs);
 }
