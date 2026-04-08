@@ -368,7 +368,7 @@ const upload_data = function(event, container, topdef, path, D) {
 }
 
 const reload = function(container, topdef, objct, D) {
-    for (var key in objct) { D.object[key] = objct[key];}
+    D.object = merge_deep(create_object_of_type(topdef, D.definitions), objct);
     create_new_form(container, topdef, D);
     if (D.functions.on_change) D.functions.on_change('', null, D.object);
 }

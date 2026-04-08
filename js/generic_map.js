@@ -172,7 +172,8 @@ let center_map_with_dimensions = function(ctx, xc, yc, width,height) { // x, y, 
   let t = ctx.get_transform();
   let w = ctx.canvas.width;
   let h = ctx.canvas.height;
-  let scl = (height == 0 || width == 1) ? 1 : Math.min(h/height, w/width);
+  let scl = (height == 0 || width == 0) ? 1 : Math.min(h/height, w/width);
+  if (!isFinite(scl) || scl <= 0) return;
   t.a = scl;
   t.d = scl;
   t.e = w/2 - xc*scl;

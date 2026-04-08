@@ -12,7 +12,7 @@
       ul.scoredots span { height: 12px; width: 12px; border-radius: 50%; display: inline-block; }
       .logos {position:absolute; top:15px; left:20px;}
       .toolbar {position:absolute; top:20px; left:70px;}
-      .sidebar {position:absolute; top:70px; left:40px; padding:20px; border-radius: 15px; max-width:400px; background-color: rgba(255,255,255,0.9);}
+      .sidebar {position:absolute; top:70px; left:40px; padding:20px; border-radius: 15px; max-width:400px; max-height: calc(100vh - 90px); background-color: rgba(255,255,255,0.9);}
       .alerts {position:absolute; bottom:10px; left:40px;}
       .full {width:100vw; height: 100vh; overflow: hidden;}
       .bi-play, .bi-pause, .bi-rewind {width: 24px; height: 24px; }
@@ -33,7 +33,7 @@
     <div id="content">
       <div id="map1"></div>
     </div>
-    <div class="sidebar">
+    <div class="sidebar" style="overflow: auto;">
       <div id="help" style="display: none;">
         <ul>
           <li>Click and drag on the map to pan</li>
@@ -44,6 +44,7 @@
           <li>Change the configuration parameters and click the down arrow button at the far left below to save and use new parameters</li>
         </ul>
       </div>
+      <button class="btn btn-sm btn-dark p-0 mb-1 w-100 saveconfig" type="button" title="Click to save configuration">Save</button>
       <div id="params" style="flex:1 1 auto;"></div>
       <div class="scores"></div>
     </div>

@@ -13,6 +13,7 @@ export function setup(VYD) {
   VYD.MAPFUNCS = setup_generic_map(MAPDIV, VYD.DRAWDATA, VYD.DRAWEXT);
   const PLAYICON = document.querySelector('svg.bi-play');
   const PAUSICON = document.querySelector('svg.bi-pause');
+  const SAVEBTN = document.querySelector('button.saveconfig');
 
   const switch_direction = () => {
       VYD.PLAYBACK_SPEED_GEAR = -VYD.PLAYBACK_SPEED_GEAR;
@@ -102,6 +103,21 @@ export function setup(VYD) {
     setTimeout(() => { document.querySelector('div.alerts').innerHTML=''; }, timeout*1000);
   }
 
+  SAVEBTN.addEventListener('click',(e) => {
+    if (VYD.defobj && VYD.defobj.object && VYD.defobj.object.config) {
+      let c = VYD.defobj.object.config;
+      if (VYD.IS_ONLINE) {
+        let data = {'pblc.share_data.config':c};
+        if (c.max_solve_time) {
+          data['prvt.submit_data.max_run_time'] = c.max_solve_time + 5;
+        }
+        window.parent.postMessage({topic:'save', data},'*');
+      } else {
+        window.parent.postMessage({topic:'save_vycnfig', data:c},'*');
+      }
+    }
+  });
+
   const set_vytools_data = function(data) {
     if (!data) return;
     VYD.IS_ONLINE = data.is_online;
@@ -109,7 +125,7 @@ export function setup(VYD) {
     if (data.vycnfig) DEFFORM.reload({config:data.vycnfig});
     if (data.vyrslts) VYD.set_vyrslts(data.vyrslts);
   }
-
+  let SAVED_ONCE = false;
   window.addEventListener('message',function(e) {
     try {
       console.log('** vydisp.js received',e.data);
@@ -126,6 +142,11 @@ export function setup(VYD) {
         }
       } else if (e.source == window.parent && e.data.topic == 'tool_data' && e.data.data) {
         set_vytools_data(e.data.data);
+        // Trigger save for uninitialized
+        if (VYD.IS_ONLINE && VYD.LEVL == 1 && !SAVED_ONCE) {
+          SAVED_ONCE = true;
+          SAVEBTN.click();
+        }
       } else {
         console.log('window.addEventListener ignoring message: ', e.data);
       }
@@ -152,15 +173,9 @@ export function setup(VYD) {
     }
   }
 
-  VYD.download = DF.download; //(filename, obj);
   if (!VYD.defobj.functions.on_save_item) {
     VYD.defobj.functions.on_save_item = function(typ, path, obj) {
-      console.log('output',typ, path, obj)
-      if (path == '_' && VYD.IS_ONLINE) {
-        window.parent.postMessage({topic:'save', data:{'pblc.share_data.config':obj.config}},'*');
-      } else if (path == '_') {
-        window.parent.postMessage({topic:'save_vycnfig', data:obj.config},'*');
-      }
+      window.parent.postMessage({topic:'download_tool_data',type:typ,obj},'*');  
     }
   }
   let DEFFORM = {};
