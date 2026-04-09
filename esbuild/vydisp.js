@@ -5,6 +5,7 @@ export function setup(VYD) {
   let SIM = null;
   VYD.FOLLOW = false;
   VYD.PLAYBACK_SPEED_GEAR = 1;
+  const CONFIGDIV = document.querySelector('#configure');
   const HELPDIV = document.querySelector('#help');
   const TOOLBAR = document.querySelector('div.toolbar');
   const SPEEDBTN = TOOLBAR.querySelector('button.speed');
@@ -94,6 +95,12 @@ export function setup(VYD) {
     ev.target.classList.toggle('btn-light');
   });
 
+  document.querySelector('button.configure').addEventListener('click',ev => {
+    CONFIGDIV.style.display = (CONFIGDIV.style.display == '') ? 'none' : '';
+    ev.target.classList.toggle('btn-dark');
+    ev.target.classList.toggle('btn-light');
+  });
+
   const alert = function(msg, timeout) {
     document.querySelector('div.alerts').innerHTML = 
       `<div class="alert alert-danger d-flex align-items-center" role="alert">
@@ -112,8 +119,12 @@ export function setup(VYD) {
           data['prvt.submit_data.max_run_time'] = c.max_solve_time + 5;
         }
         window.parent.postMessage({topic:'save', data},'*');
-      } else {
+      } else if (VYD.IS_VS_CODE) {
         window.parent.postMessage({topic:'save_vycnfig', data:c},'*');
+      } else {
+        let filename = prompt('Download to:','vycnfig.json')
+        if (!filename) return;
+        DF.download(filename,c);
       }
     }
   });
@@ -121,11 +132,16 @@ export function setup(VYD) {
   const set_vytools_data = function(data) {
     if (!data) return;
     VYD.IS_ONLINE = data.is_online;
+    VYD.IS_VS_CODE = data.is_vs_code;
     VYD.LEVL = data.levl;
+    if (VYD.IS_ONLINE && VYD.LEVL == 0) {
+      document.querySelector('button.configure').style.display = 'none'
+      CONFIGDIV.style.display = 'none';
+    }
     if (data.vycnfig) DEFFORM.reload({config:data.vycnfig});
     if (data.vyrslts) VYD.set_vyrslts(data.vyrslts);
   }
-  let SAVED_ONCE = false;
+
   window.addEventListener('message',function(e) {
     try {
       console.log('** vydisp.js received',e.data);
@@ -142,11 +158,6 @@ export function setup(VYD) {
         }
       } else if (e.source == window.parent && e.data.topic == 'tool_data' && e.data.data) {
         set_vytools_data(e.data.data);
-        // Trigger save for uninitialized
-        if (VYD.IS_ONLINE && VYD.LEVL == 1 && !SAVED_ONCE) {
-          SAVED_ONCE = true;
-          SAVEBTN.click();
-        }
       } else {
         console.log('window.addEventListener ignoring message: ', e.data);
       }
@@ -179,10 +190,24 @@ export function setup(VYD) {
     }
   }
   let DEFFORM = {};
+  
   VYD.fin = () => {
     window.parent.postMessage({topic:'request_tool_data'},'*');
     set_vytools_data(window.TOOL_DATA);  
   }
+
+  if (!VYD.hasOwnProperty('TIME')) VYD.TIME = 0;
+  VYD.check_time = (MAX_TIME, TIME_STEP) => {
+    let MIN_TIME = 0;
+    if (VYD.TIMEBTN) VYD.TIMEBTN.innerText = VYD.TIME.toFixed(2)+' sec';
+    let keepgoing = 
+      (VYD.TIME < MAX_TIME || (VYD.TIME == MAX_TIME && VYD.PLAYBACK_SPEED_GEAR < 0)) && 
+      (VYD.TIME > MIN_TIME || (VYD.TIME == MIN_TIME && VYD.PLAYBACK_SPEED_GEAR > 0));
+    VYD.TIME += VYD.PLAYBACK_SPEED_GEAR*TIME_STEP;
+    VYD.TIME = Math.max(MIN_TIME, Math.min(MAX_TIME, VYD.TIME));
+    return keepgoing;
+  }
+
   try {
     DEFFORM = DF.init(document.querySelector('#params'), VYD.defobj);
     VYD.defobj.reload = DEFFORM.reload;

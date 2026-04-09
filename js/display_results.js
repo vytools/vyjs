@@ -1,5 +1,3 @@
-import "./plotly-3.0.1.min.js"
-
 const make_problem_table = function(problem) {
   let inputs = '', outputs = '';
   if (problem.inputs) {
@@ -85,17 +83,24 @@ export function process_results(stdout, results, elmnt, is_offline) {
     }
     html += `<h4 style="text-align:center">Tests</h4>${summary}${DOMPurify.sanitize(results_html)}`;
     elmnt.insertAdjacentHTML('beforeend',html);
-    if (results && results.plots) {
+    if (results && results.plots && results.plots.length > 0) {
       elmnt.insertAdjacentHTML('beforeend','<h4 style="text-align:center">Plots</h4>');
-      for (var i = 0; i < results.plots.length; i++) {
-        // TODO is there any way at all to DOMPurify this?  
-        let plotly_div = document.createElement('div');
-        elmnt.appendChild(plotly_div);  
-        if (window.Plotly) {
-          Plotly.newPlot(plotly_div, results.plots[i].data || [], results.plots[i].layout || {}, results.plots[i].config || {});
-        } else {
-          console.log('no plotly')
+      const renderPlots = () => {
+        for (var i = 0; i < results.plots.length; i++) {
+          // TODO is there any way at all to DOMPurify this?
+          let plotly_div = document.createElement('div');
+          elmnt.appendChild(plotly_div);
+          if (window.Plotly) {
+            Plotly.newPlot(plotly_div, results.plots[i].data || [], results.plots[i].layout || {}, results.plots[i].config || {});
+          } else {
+            console.log('no plotly')
+          }
         }
+      };
+      if (window.Plotly) {
+        renderPlots();
+      } else {
+        import("./plotly-3.0.1.min.js").then(renderPlots);
       }
     }
 }

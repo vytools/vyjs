@@ -390,12 +390,24 @@ export function init(container, D) {
     }
     while(container.firstChild){ container.removeChild(container.firstChild); }
     container.insertAdjacentHTML('beforeend',`<div class="data_form_top_div" style="flex:1"></div>`);
-    const reload_ = function(data) {
-        if (D.functions.on_load) data = D.functions.on_load(topdef,INITIALCHAR,data);
-        reload(container, topdef, data, D);
-    };
     create_new_form(container, topdef, D);
-    return {reload:reload_}
+    return {
+        reload(data, path) {
+            if (!path || path == INITIALCHAR) {
+                if (D.functions.on_load) {
+                    data = D.functions.on_load(topdef, INITIALCHAR, data);
+                }
+                reload(container, topdef, data, D);
+            } else {
+                let current_def = by_path(container, topdef, path, 'pat', null, D);
+                let d = (native.hasOwnProperty(current_def.type)) ? data :
+                    merge_deep(create_object_of_type(current_def, D.definitions), data);
+                set_by_path(D.object, path, d);
+                recreate_new_form_with_visible(container, topdef, path, D);
+                if (D.functions.on_change) D.functions.on_change(path, data, D.object);
+            }
+        }
+    }
 }
 
 export function create(container, definitions, def, obj, functions) {

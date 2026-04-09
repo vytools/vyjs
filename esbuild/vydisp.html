@@ -44,12 +44,16 @@
           <li>Change the configuration parameters and click the down arrow button at the far left below to save and use new parameters</li>
         </ul>
       </div>
-      <button class="btn btn-sm btn-dark p-0 mb-1 w-100 saveconfig" type="button" title="Click to save configuration">Save</button>
-      <div id="params" style="flex:1 1 auto;"></div>
+      <div id="configure" style="display:none">
+        <button class="btn btn-sm btn-dark p-0 mb-1 w-100 saveconfig" type="button" title="Click to save configuration">Save</button>
+        <div id="params" style="flex:1 1 auto;"></div>
+      </div>
       <div class="scores"></div>
     </div>
     <div class="toolbar btn-group">
         <button class="btn btn-sm btn-light help" type="button" title="Click for help">Help</button>
+        <button class="btn btn-sm btn-light configure" type="button" title="Click to configure">Configure</button>
+        <button class="btn btn-sm btn-light follow" type="button" title="Click to track the leader during the simulation">Follow</button>
         <button class="btn btn-sm btn-light playpause" type="button" title="Click to play/pause the simulation">
             <!-- https://icons.getbootstrap.com/ -->
             <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" class="bi bi-play black" viewBox="0 0 16 16">
@@ -66,7 +70,6 @@
         </button>
         <button class="btn btn-sm btn-light time" type="button">0 sec</button>
         <button class="btn btn-sm btn-light speed" type="button" style="display:none">speed: 1</button>
-        <button class="btn btn-sm btn-light follow" type="button" title="Click to track the leader during the simulation">Follow</button>
     </div>
     <div class="logos">
       <svg xmlns:svg="http://www.w3.org/2000/svg" xmlns="http://www.w3.org/2000/svg" version="1.1" width="48" height="48" viewBox="0 0 48 48">
