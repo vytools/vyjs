@@ -86,33 +86,55 @@ export function setup(VYD) {
       toggle_play_pause();
     } else if (b.classList.contains('restart')) {
       VYD.restart();
+    } else if (b.classList.contains('help')) {
+      HELPDIV.style.display = (HELPDIV.style.display == '') ? 'none' : '';
+      ev.target.classList.toggle('btn-dark');
+      ev.target.classList.toggle('btn-light');
+    } else if (b.classList.contains('configure')) {
+      CONFIGDIV.style.display = (CONFIGDIV.style.display == '') ? 'none' : '';
+      ev.target.classList.toggle('btn-dark');
+      ev.target.classList.toggle('btn-light');
+    } else if (b.classList.contains('loadresults')) {
+      LOADINPUT.click();
     }
   });
 
-  document.querySelector('button.help').addEventListener('click',ev => {
-    HELPDIV.style.display = (HELPDIV.style.display == '') ? 'none' : '';
-    ev.target.classList.toggle('btn-dark');
-    ev.target.classList.toggle('btn-light');
-  });
-
-  document.querySelector('button.configure').addEventListener('click',ev => {
-    CONFIGDIV.style.display = (CONFIGDIV.style.display == '') ? 'none' : '';
-    ev.target.classList.toggle('btn-dark');
-    ev.target.classList.toggle('btn-light');
-  });
-
-  const alert = function(msg, timeout) {
-    document.querySelector('div.alerts').innerHTML = 
-      `<div class="alert alert-danger d-flex align-items-center" role="alert">
-        <svg class="bi flex-shrink-0 me-2" width="24" height="24" role="img" aria-label="Danger:"><use xlink:href="#exclamation-triangle-fill"/></svg>
-        <div>${msg}</div>
-      </div>`;
-    setTimeout(() => { document.querySelector('div.alerts').innerHTML=''; }, timeout*1000);
+  VYD.alert = function(msg, timeout) {
+    const el = document.createElement('div');
+    el.className = 'alert alert-primary d-flex align-items-center';
+    el.setAttribute('role', 'alert');
+    el.innerHTML = `<svg class="bi flex-shrink-0 me-2" width="24" height="24" role="img" aria-label="Danger:"><use xlink:href="#exclamation-triangle-fill"/></svg><div>${msg}</div>`;
+    document.querySelector('div.alerts').appendChild(el);
+    setTimeout(() => { el.remove(); }, timeout*1000);
   }
 
+  const load_results = function(data) {
+    try {
+      DEFFORM.reload(data);
+      VYD.set_vyrslts([data]);
+    } catch(err) {
+      alert(`Failed to parse vyrslts.json. Is the syntax correct? ${err}`,8);
+    }
+  }
+
+  const LOADINPUT = document.createElement('input');
+  LOADINPUT.type = 'file';
+  LOADINPUT.accept = '.json';
+  LOADINPUT.style.display = 'none';
+  document.body.appendChild(LOADINPUT);
+  LOADINPUT.addEventListener('change', (e) => {
+    if (!e.target.files || !e.target.files.length) return;
+    const reader = new FileReader();
+    reader.onload = (ev) => {
+      load_results(JSON.parse(ev.target.result))
+    };
+    reader.readAsText(e.target.files[0]);
+    LOADINPUT.value = '';
+  });
   SAVEBTN.addEventListener('click',(e) => {
     if (VYD.defobj && VYD.defobj.object && VYD.defobj.object.config) {
       let c = VYD.defobj.object.config;
+      console.log('VYD.IS_VS_CODE',VYD.IS_VS_CODE,'VYD.IS_ONLINE',VYD.IS_ONLINE)
       if (VYD.IS_ONLINE) {
         let data = {'pblc.share_data.config':c};
         if (c.max_solve_time) {
@@ -131,8 +153,9 @@ export function setup(VYD) {
 
   const set_vytools_data = function(data) {
     if (!data) return;
-    VYD.IS_ONLINE = data.is_online;
-    VYD.IS_VS_CODE = data.is_vs_code;
+    if (data.hasOwnProperty('is_online')) VYD.IS_ONLINE = data.is_online;
+    if (data.hasOwnProperty('is_vs_code')) VYD.IS_VS_CODE = data.is_vs_code;
+    document.querySelector('button.loadresults').style.display = (VYD.IS_ONLINE) ? 'none' : '';
     VYD.LEVL = data.levl;
     if (VYD.IS_ONLINE && VYD.LEVL == 0) {
       document.querySelector('button.configure').style.display = 'none'
@@ -145,17 +168,13 @@ export function setup(VYD) {
   window.addEventListener('message',function(e) {
     try {
       console.log('** vydisp.js received',e.data);
+      if (e.data.message) alert(e.data.message,8);
       if (e.source == window.parent && e.data.topic == 'results_json') {
         // data is the parsed contents of vyrslts.json.
         // It should match the defobj.top schema and usually has a field "config".
         // DEFFORM.reload expects the full top-level object; 
         // VYD.set_vyrslts receives it as a single-item array.
-        try {
-          DEFFORM.reload(e.data.data);
-          VYD.set_vyrslts([e.data.data]);
-        } catch(err) {
-          alert(`Failed to parse vyrslts.json. Is the syntax correct? ${err}`,8);
-        }
+        load_results(e.data.data);
       } else if (e.source == window.parent && e.data.topic == 'tool_data' && e.data.data) {
         set_vytools_data(e.data.data);
       } else {
@@ -167,18 +186,13 @@ export function setup(VYD) {
   });
 
   if (!VYD.defobj.functions) VYD.defobj.functions = {};
-
   if (!VYD.defobj.functions.on_load) {
     VYD.defobj.functions.on_load = function(typ, path, obj) {
       let output = obj;
-      if (typ == undefined && path == '_') { // Loading from file
-        if (obj.hasOwnProperty('config')) { // Loading results
-          console.log('** Attempting to load "vyrslts.json" from file')
-        } else {
-          console.log('** Attempting to load "vycnfig.json" from file')
-          output = {config:obj};
-        }
-      } else if (path == '_') { // Loaded top level (could be after loaded from file)
+      if (typ == undefined && path == '_' && !obj.hasOwnProperty('config')) { // Loading from vycnfig
+        output = {config:obj};
+      }
+      if (path == '_') { // Loaded top level (could be after loaded from file)
       }
       return output;
     }
@@ -192,6 +206,8 @@ export function setup(VYD) {
   let DEFFORM = {};
   
   VYD.fin = () => {
+    VYD.IS_ONLINE = false;
+    VYD.IS_VS_CODE = false;
     window.parent.postMessage({topic:'request_tool_data'},'*');
     set_vytools_data(window.TOOL_DATA);  
   }
