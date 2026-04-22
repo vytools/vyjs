@@ -99,7 +99,7 @@ export function setup(VYD) {
     }
   });
 
-  VYD.alert = function(msg, timeout) {
+  VYD.show_alert = function(msg, timeout) {
     const el = document.createElement('div');
     el.className = 'alert alert-primary d-flex align-items-center';
     el.setAttribute('role', 'alert');
@@ -113,7 +113,7 @@ export function setup(VYD) {
       DEFFORM.reload(data);
       VYD.set_vyrslts([data]);
     } catch(err) {
-      alert(`Failed to parse vyrslts.json. Is the syntax correct? ${err}`,8);
+      VYD.show_alert(`Failed to parse vyrslts.json. Is the syntax correct? ${err}`,8);
     }
   }
 
@@ -153,22 +153,26 @@ export function setup(VYD) {
 
   const set_vytools_data = function(data) {
     if (!data) return;
-    if (data.hasOwnProperty('is_online')) VYD.IS_ONLINE = data.is_online;
-    if (data.hasOwnProperty('is_vs_code')) VYD.IS_VS_CODE = data.is_vs_code;
-    document.querySelector('button.loadresults').style.display = (VYD.IS_ONLINE) ? 'none' : '';
-    VYD.LEVL = data.levl;
-    if (VYD.IS_ONLINE && VYD.LEVL == 0) {
-      document.querySelector('button.configure').style.display = 'none'
-      CONFIGDIV.style.display = 'none';
+    try {
+      if (data.hasOwnProperty('is_online')) VYD.IS_ONLINE = data.is_online;
+      if (data.hasOwnProperty('is_vs_code')) VYD.IS_VS_CODE = data.is_vs_code;
+      document.querySelector('button.loadresults').style.display = (VYD.IS_ONLINE) ? 'none' : '';
+      VYD.LEVL = data.levl;
+      if (VYD.IS_ONLINE && VYD.LEVL == 0) {
+        document.querySelector('button.configure').style.display = 'none'
+        CONFIGDIV.style.display = 'none';
+      }
+      if (data.vycnfig) DEFFORM.reload({config:data.vycnfig});
+      if (data.vyrslts) VYD.set_vyrslts(data.vyrslts);
+    } catch(err) {
+      VYD.show_alert('Problem loading data: '+err, 10);
     }
-    if (data.vycnfig) DEFFORM.reload({config:data.vycnfig});
-    if (data.vyrslts) VYD.set_vyrslts(data.vyrslts);
   }
 
   window.addEventListener('message',function(e) {
     try {
       console.log('** vydisp.js received',e.data);
-      if (e.data.message) alert(e.data.message,8);
+      if (e.data.message) VYD.show_alert(e.data.message,8);
       if (e.source == window.parent && e.data.topic == 'results_json') {
         // data is the parsed contents of vyrslts.json.
         // It should match the defobj.top schema and usually has a field "config".
@@ -181,7 +185,7 @@ export function setup(VYD) {
         console.log('window.addEventListener ignoring message: ', e.data);
       }
     } catch(err) {
-      alert(`Failed to interpret message: ${err}`,8);
+      VYD.show_alert(`Failed to interpret message: ${err}`,8);
     }
   });
 
@@ -229,14 +233,14 @@ export function setup(VYD) {
     VYD.defobj.reload = DEFFORM.reload;
   } catch (err) {
     let msg = `Failed to initialize definitions: ${err}`;
-    alert(msg, 8);
+    VYD.show_alert(msg, 8);
     throw new Error(msg);
   }
   try {
     VYD.defobj.reload(VYD.defobj.object);
   } catch (err) {
     let msg = `Failed to load default object: ${err}: ${JSON.stringify(VYD.defobj.object,null,2)}`;
-    alert(msg, 8);
+    VYD.show_alert(msg, 8);
     throw new Error(msg);
   }
 }

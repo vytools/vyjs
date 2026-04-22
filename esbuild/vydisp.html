@@ -17,6 +17,30 @@
       .alerts {position:absolute; top:10px; right:40px; max-width: 400;}
       .full {width:100vw; height: 100vh; overflow: hidden;}
       .bi-play, .bi-pause, .bi-rewind {width: 24px; height: 24px; }
+      
+      .bracket-table { border-collapse: collapse; width: 100%; }
+      .bracket-table .player-name { padding: 2px 8px; font-weight: bold; white-space: nowrap; }
+      .bracket-table .score-cell {
+          padding: 2px 8px; min-width: 54px; text-align: right;
+          color: transparent; cursor: pointer; user-select: none;
+          border: 1px solid rgba(128,128,128,0.15); transition: background 0.1s;
+      }
+      .bracket-table .score-cell:hover { background: rgba(128,128,128,0.12); }
+      .bracket-table .score-cell.revealed { color: inherit; }
+      .bracket-table .match-gap td { height: 8px; border: none; }
+      .bracket-table .winner-name { text-decoration: underline; }
+      .bracket-nav {
+          display: flex; align-items: center; justify-content: center;
+          gap: 14px; margin-top: 10px;
+      }
+      .bracket-nav button {
+          padding: 4px 12px; cursor: pointer;
+          background: rgb(0,0,0); color: #ddd;
+          border: 1px solid rgba(255,255,255,0.2); border-radius: 3px;
+      }
+      .bracket-nav button:hover { background: rgb(100,100,100); }
+      .bracket-nav .round-label { color: #aaa; font-size: 0.9em; }
+
     </style>
     <svg xmlns="http://www.w3.org/2000/svg" style="display: none;">
       <symbol id="check-circle-fill" fill="currentColor" viewBox="0 0 16 16">
@@ -102,12 +126,12 @@
     </div>
     <div class="alerts"></div>
     <script type="importmap">
-    {
-      "imports": {
-        "three/addons/": "./jsbots/three/examples/jsm/",
-        "three": "./jsbots/three/build/three.module.min.js"
+      {
+        "imports":{
+          "three":"https://cdn.jsdelivr.net/npm/three@0.158.0/build/three.module.min.js",
+          "three/addons/":"https://cdn.jsdelivr.net/npm/three@0.158.0/examples/jsm/"
+        }
       }
-    }
     </script>
     __SCRIPT__
   </body>

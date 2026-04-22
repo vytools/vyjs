@@ -5,5 +5,6 @@ RUN npm install esbuild
 COPY css /app/css
 COPY js /app/js
 COPY esbuild/bundle-html.mjs /app/
+COPY esbuild/bracket.js /app/
 COPY esbuild/vydisp.js /app/
 COPY esbuild/vydisp.html /app/
