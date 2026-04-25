@@ -1,7 +1,4 @@
-import { setup_generic_map } from "./js/generic_map.js";
-import * as DF from "./js/definition_form.js";
-
-export function setup(VYD) {
+export function setup(VYD, DF, setup_generic_map) {
   let SIM = null;
   VYD.FOLLOW = false;
   VYD.PLAYBACK_SPEED_GEAR = 1;
@@ -79,7 +76,8 @@ export function setup(VYD) {
 
   TOOLBAR.addEventListener('click',async (ev)=>{
     let b = ev.target.closest('button');
-    if (b.classList.contains('follow')) {
+    if (!b) {
+    } else if (b.classList.contains('follow')) {
       VYD.FOLLOW = !VYD.FOLLOW;
       tog_(b, VYD.FOLLOW);
     } else if (b.classList.contains('playpause')) {

@@ -49,7 +49,7 @@ function extractImportMap(html) {
   }
 }
 
-async function inlineLocalScript(html, baseDir, minify) {
+async function inlineLocalScript(html, baseDir, minify, bundleCdn) {
   const importMap = extractImportMap(html);
 
   const scriptRegex =
@@ -68,13 +68,35 @@ async function inlineLocalScript(html, baseDir, minify) {
         setup(build) {
           build.onResolve({ filter: /.*/ }, args => {
             for (const key in importMap) {
-              if (args.path === key || args.path.startsWith(key)) {
-                const rel = args.path.replace(key, '');
-                const resolvedPath = path.resolve(baseDir, importMap[key] + rel);
-                return { path: resolvedPath };
+              const isPrefix = key.endsWith('/');
+              const matches = isPrefix ? args.path.startsWith(key) : args.path === key;
+              if (!matches) continue;
+              const mapped = importMap[key];
+              const rel = isPrefix ? args.path.slice(key.length) : '';
+              if (/^https?:\/\//.test(mapped)) {
+                if (bundleCdn) return { path: mapped + rel, namespace: 'http-url' };
+                return { path: args.path, external: true };
               }
+              return { path: path.resolve(baseDir, mapped + rel) };
             }
             return null;
+          });
+        }
+      });
+    }
+    if (bundleCdn) {
+      plugins.push({
+        name: 'http-import',
+        setup(build) {
+          build.onResolve({ filter: /.*/, namespace: 'http-url' }, args => ({
+            path: new URL(args.path, args.importer).toString(),
+            namespace: 'http-url',
+          }));
+          build.onLoad({ filter: /.*/, namespace: 'http-url' }, async args => {
+            const res = await fetch(args.path);
+            if (!res.ok) throw new Error(`Failed to fetch ${args.path}: ${res.status}`);
+            const contents = await res.text();
+            return { contents, loader: 'js' };
           });
         }
       });
@@ -143,7 +165,7 @@ async function build() {
   let outHtml = '';
   let baseDir = '';
   if (process.argv.length < 4) {
-    console.log('Usage: node bundle-html.js input.html/.js output.html');
+    console.log('Usage: node bundle-html.js input.html/.js output.html [--no-minify] [--bundle-cdn]');
     return;
   } else if (process.argv[2].endsWith('.html')) {
     html = await fs.readFile(process.argv[2], 'utf8');
@@ -154,14 +176,20 @@ async function build() {
     html = HTML.replace('__SCRIPT__','<script type="module" src="'+process.argv[2]+'"></script>')
     outHtml = process.argv[3];
   }
-  let minify = !(process.argv.length == 5 && process.argv[4]=='-no-minify');
+  const flags = process.argv.slice(4);
+  const minify = !flags.includes('--no-minify');
+  const bundleCdn = flags.includes('--bundle-cdn');
 
   if (outHtml != '') {
     let output = html;
     // 1) Inline local <script type="module" src="...">
-    output = await inlineLocalScript(output, baseDir, minify);
+    output = await inlineLocalScript(output, baseDir, minify, bundleCdn);
     // 2) Inline local <link rel="stylesheet" href="...">
     output = await inlineLocalCSS(output, baseDir);
+    // 3) Strip import map when CDN deps are bundled inline
+    if (bundleCdn) {
+      output = output.replace(/<script\s+type="importmap">[\s\S]*?<\/script>\s*/i, '');
+    }
     await fs.writeFile(outHtml, output, 'utf8');
     console.log(`Bundled → ${outHtml}`);
   } else {
