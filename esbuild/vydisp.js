@@ -45,13 +45,13 @@ export function setup(VYD, DF, setup_generic_map) {
     }    
   }
 
-  MAPDIV.addEventListener('mousedown', (ev) => {
+  document.addEventListener('mousedown', (ev) => {
     SPEEDBTN.style.display = 'none';
     if (ev.detail == 2 && ev.shiftKey) toggle_play_pause();
     if (ev.detail == 2 && ev.ctrlKey) switch_direction();
     VYD.DRAWDATA.disable_map_events = false;
   });
-  MAPDIV.addEventListener('wheel', (ev) => {
+  document.addEventListener('wheel', (ev) => {
     if (ev.shiftKey) {
       VYD.DRAWDATA.disable_map_events = true;
       let sgn = (VYD.PLAYBACK_SPEED_GEAR > 0) ? 1 : -1
@@ -98,11 +98,16 @@ export function setup(VYD, DF, setup_generic_map) {
   });
 
   VYD.show_alert = function(msg, timeout) {
+    const alertsDiv = document.querySelector('div.alerts');
+    for (const existing of alertsDiv.querySelectorAll('.alert'))
+      if (existing.dataset.alertMsg === msg) return;
     const el = document.createElement('div');
-    el.className = 'alert alert-primary d-flex align-items-center';
+    el.className = 'alert alert-primary d-flex align-items-center alert-dismissible';
     el.setAttribute('role', 'alert');
-    el.innerHTML = `<svg class="bi flex-shrink-0 me-2" width="24" height="24" role="img" aria-label="Danger:"><use xlink:href="#exclamation-triangle-fill"/></svg><div>${msg}</div>`;
-    document.querySelector('div.alerts').appendChild(el);
+    el.dataset.alertMsg = msg;
+    el.innerHTML = `<svg class="bi flex-shrink-0 me-2" width="24" height="24" role="img" aria-label="Danger:"><use xlink:href="#exclamation-triangle-fill"/></svg><div>${msg}</div><button type="button" class="btn-close ms-auto" aria-label="Close"></button>`;
+    el.querySelector('button').addEventListener('click', () => el.remove());
+    alertsDiv.appendChild(el);
     setTimeout(() => { el.remove(); }, timeout*1000);
   }
 
