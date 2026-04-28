@@ -415,6 +415,31 @@ export function create(container, definitions, def, obj, functions) {
     return init(container, D);
 }
 
+export function diff_objects(obj1, obj2, definitions, type, path) {
+    const diffs = [];
+    if (path === undefined) path = '';
+    if (native.hasOwnProperty(type)) {
+        if (obj1 !== obj2) diffs.push({path, val1: obj1, val2: obj2});
+    } else if (definitions.hasOwnProperty(type)) {
+        for (const d of definitions[type]) {
+            const v1 = (obj1 != null && obj1.hasOwnProperty(d.name)) ? obj1[d.name] : undefined;
+            const v2 = (obj2 != null && obj2.hasOwnProperty(d.name)) ? obj2[d.name] : undefined;
+            const subpath = (path ? path + '.' : '') + (d.description || d.name);
+            if (d.hasOwnProperty('length')) {
+                const a1 = Array.isArray(v1) ? v1 : [];
+                const a2 = Array.isArray(v2) ? v2 : [];
+                const n = Math.max(a1.length, a2.length);
+                for (let i = 0; i < n; i++) {
+                    diffs.push(...diff_objects(a1[i] ?? null, a2[i] ?? null, definitions, d.type, `${subpath}[${i}]`));
+                }
+            } else {
+                diffs.push(...diff_objects(v1, v2, definitions, d.type, subpath));
+            }
+        }
+    }
+    return diffs;
+}
+
 export function download(filename,x) {
     if (!filename) return;
     console.log('Downloading to',filename,x)

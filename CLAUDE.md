@@ -70,7 +70,7 @@ This repo is a collection of standalone ES module JavaScript files in `js/` — 
 - `restart()` — resets simulation state
 - `set_vyrslts(vyrslts)` — loads result data
 
-`vydisp.js` receives data from a parent frame via `window.postMessage` with topics `results_json`, `tool_data`, and `vydisplog` (toggles console logging). Saves are sent back to the parent via `postMessage` with topics `save`.
+`vydisp.js` receives data from a parent frame via `window.postMessage` with topic `tool_data`. Sends to parent: `request_tool_data` on init, `save` (online config save), `save_vycnfig` (VS Code config save), `download_tool_data` (item download).
 
 ### Bundling pipeline
 

@@ -45,13 +45,13 @@ export function setup(VYD, DF, setup_generic_map) {
     }    
   }
 
-  MAPDIV.addEventListener('mousedown', (ev) => {
+  document.addEventListener('mousedown', (ev) => {
     SPEEDBTN.style.display = 'none';
     if (ev.detail == 2 && ev.shiftKey) toggle_play_pause();
     if (ev.detail == 2 && ev.ctrlKey) switch_direction();
     VYD.DRAWDATA.disable_map_events = false;
   });
-  MAPDIV.addEventListener('wheel', (ev) => {
+  document.addEventListener('wheel', (ev) => {
     if (ev.shiftKey) {
       VYD.DRAWDATA.disable_map_events = true;
       let sgn = (VYD.PLAYBACK_SPEED_GEAR > 0) ? 1 : -1
@@ -98,21 +98,17 @@ export function setup(VYD, DF, setup_generic_map) {
   });
 
   VYD.show_alert = function(msg, timeout) {
+    const alertsDiv = document.querySelector('div.alerts');
+    for (const existing of alertsDiv.querySelectorAll('.alert'))
+      if (existing.dataset.alertMsg === msg) return;
     const el = document.createElement('div');
-    el.className = 'alert alert-primary d-flex align-items-center';
+    el.className = 'alert alert-primary d-flex align-items-center alert-dismissible';
     el.setAttribute('role', 'alert');
-    el.innerHTML = `<svg class="bi flex-shrink-0 me-2" width="24" height="24" role="img" aria-label="Danger:"><use xlink:href="#exclamation-triangle-fill"/></svg><div>${msg}</div>`;
-    document.querySelector('div.alerts').appendChild(el);
+    el.dataset.alertMsg = msg;
+    el.innerHTML = `<svg class="bi flex-shrink-0 me-2" width="24" height="24" role="img" aria-label="Danger:"><use xlink:href="#exclamation-triangle-fill"/></svg><div>${msg}</div><button type="button" class="btn-close ms-auto" aria-label="Close"></button>`;
+    el.querySelector('button').addEventListener('click', () => el.remove());
+    alertsDiv.appendChild(el);
     setTimeout(() => { el.remove(); }, timeout*1000);
-  }
-
-  const load_results = function(data) {
-    try {
-      DEFFORM.reload(data);
-      VYD.set_vyrslts([data]);
-    } catch(err) {
-      VYD.show_alert(`Failed to parse vyrslts.json. Is the syntax correct? ${err}`,8);
-    }
   }
 
   const LOADINPUT = document.createElement('input');
@@ -124,7 +120,13 @@ export function setup(VYD, DF, setup_generic_map) {
     if (!e.target.files || !e.target.files.length) return;
     const reader = new FileReader();
     reader.onload = (ev) => {
-      load_results(JSON.parse(ev.target.result))
+      try {
+        let data = JSON.parse(ev.target.result);
+        DEFFORM.reload(data);
+        VYD.set_vyrslts([data]);
+      } catch(err) {
+        VYD.show_alert(`Failed to parse vyrslts.json. Is the syntax correct? ${err}`,8);
+      }
     };
     reader.readAsText(e.target.files[0]);
     LOADINPUT.value = '';
@@ -160,8 +162,25 @@ export function setup(VYD, DF, setup_generic_map) {
         document.querySelector('button.configure').style.display = 'none'
         CONFIGDIV.style.display = 'none';
       }
+      if (data.vyrslts && data.vyrslts.length > 0 && data.vyrslts[0].hasOwnProperty('config')) {
+        let newconfig = JSON.parse(JSON.stringify(data.vyrslts[0].config));
+        if (data.vycnfig && typeof data.vycnfig === 'object' && Object.keys(data.vycnfig).length > 0) {
+          const topFields = VYD.defobj.definitions[VYD.defobj.top] || [];
+          const configField = topFields.find(d => d.name === 'config');
+          if (configField) {
+            const diffs = DF.diff_objects(data.vycnfig, newconfig, VYD.defobj.definitions, configField.type);
+            if (diffs.length > 0) {
+              const lines = diffs.map(d => `<li>${d.path}: ${d.val1} &rarr; ${d.val2}</li>`).join('');
+              VYD.show_alert(`Different configs (vycnfig &rarr; vyrslts). Will use vyrslts:<ul style="margin:0">${lines}</ul>`, 15);
+            }
+          }
+        }
+        data.vycnfig = newconfig; // Overwrite
+      }
       if (data.vycnfig) DEFFORM.reload({config:data.vycnfig});
-      if (data.vyrslts) VYD.set_vyrslts(data.vyrslts);
+      if (data.vyrslts) {
+        VYD.set_vyrslts(data.vyrslts);
+      }
     } catch(err) {
       VYD.show_alert('Problem loading data: '+err, 10);
     }
@@ -171,13 +190,7 @@ export function setup(VYD, DF, setup_generic_map) {
     try {
       console.log('** vydisp.js received',e.data);
       if (e.data.message) VYD.show_alert(e.data.message,8);
-      if (e.source == window.parent && e.data.topic == 'results_json') {
-        // data is the parsed contents of vyrslts.json.
-        // It should match the defobj.top schema and usually has a field "config".
-        // DEFFORM.reload expects the full top-level object; 
-        // VYD.set_vyrslts receives it as a single-item array.
-        load_results(e.data.data);
-      } else if (e.source == window.parent && e.data.topic == 'tool_data' && e.data.data) {
+      if (e.source == window.parent && e.data.topic == 'tool_data' && e.data.data) {
         set_vytools_data(e.data.data);
       } else {
         console.log('window.addEventListener ignoring message: ', e.data);
