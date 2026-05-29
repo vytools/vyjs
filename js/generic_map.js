@@ -188,6 +188,8 @@ export class GenericMap {
     this._contentdiv = contentdiv;
     this._data = DATA;
     this._renderFuncs = RenderFuncs;
+    this._hasBeenSized = false;
+    this._pendingCenter = null;
 
     if (!DATA.hasOwnProperty('measuring_tool')) {
       DATA.measuring_tool = {
@@ -210,7 +212,7 @@ export class GenericMap {
       ro.observe(contentdiv);
     }
 
-    this._toggleable.addEventListener('click',(e) => {
+    this._toggleable.addEventListener('mousedown',(e) => {
       let tog = e.target.closest('button');
       if (tog && tog.innerText) draw(this.CTX, this._data, tog.innerText);
     });
@@ -266,6 +268,8 @@ export class GenericMap {
     const w = this._contentdiv.offsetWidth;
     const h = this._contentdiv.offsetHeight;
     if (w === 0 || h === 0) return;
+    const firstSize = !this._hasBeenSized;
+    this._hasBeenSized = true;
     let transform = this.CTX ? this.CTX.get_transform() : null;
     this.CTX = initialize_map(this.CANVAS);
     if (this._renderFuncs) this.CTX.RenderFuncs = this._renderFuncs;
@@ -273,7 +277,16 @@ export class GenericMap {
     this.CANVAS.height = h;
     this.CTX.SCREEN.lastX = this.CANVAS.width/2;
     this.CTX.SCREEN.lastY = this.CANVAS.height/2;
-    if (transform) this.CTX.set_transform(transform);
+    if (firstSize && this._pendingCenter) {
+      const c = this._pendingCenter;
+      if (c.width !== undefined) {
+        center_map_with_dimensions(this.CTX, c.x, c.y, c.width, c.height);
+      } else {
+        center_map(this.CTX, c.x, c.y);
+      }
+    } else if (transform) {
+      this.CTX.set_transform(transform);
+    }
     draw(this.CTX, this._data, null);
   }
 
@@ -286,9 +299,15 @@ export class GenericMap {
     return P;
   }
 
-  centerMap(x, y) { center_map(this.CTX, x, y); }
+  centerMap(x, y) {
+    this._pendingCenter = {x, y};
+    center_map(this.CTX, x, y);
+  }
 
-  centerMapWithDimensions(x, y, width, height) { center_map_with_dimensions(this.CTX, x, y, width, height); }
+  centerMapWithDimensions(x, y, width, height) {
+    this._pendingCenter = {x, y, width, height};
+    center_map_with_dimensions(this.CTX, x, y, width, height);
+  }
 
   positionToScreen(x, y) {
     if (!this.CTX) return;
