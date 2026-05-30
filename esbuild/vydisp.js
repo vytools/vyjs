@@ -188,7 +188,7 @@ export function setup(VYD, DF, setup_generic_map) {
 
   window.addEventListener('message',function(e) {
     try {
-      console.log('** vydisp.js received',e.data);
+      // console.log('** vydisp.js received',e.data);
       if (e.data.message) VYD.show_alert(e.data.message,8);
       if (e.source == window.parent && e.data.topic == 'tool_data' && e.data.data) {
         set_vytools_data(e.data.data);
