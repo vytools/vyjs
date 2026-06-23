@@ -1,5 +1,6 @@
 import { initialize_map } from "./zoom_pan_canvas.js";
 import { version } from "./version.js";
+import * as ARCS from "./arcs.js"
 
 let draw_arc = function(arc, ctx) {
   if (!ctx || !arc) return;
@@ -79,6 +80,47 @@ let draw_circle = function(circ, ctx) {
   if (circ.stroke || circ.stroke_width) ctx.stroke()
 }
 
+let draw_animation = (thing, ctx, invar) => {
+  let iv = (thing.independent_variable_scale || 1) * invar;
+  if (thing.hasOwnProperty('arc_path')) {
+    const arcs = thing.arc_path;
+    for (let ii = 0; ii < arcs.length; ii++) {
+      if (thing.draw_arc) {
+        draw_arc({...thing.draw_arc, ...arcs[ii]}, ctx);
+      }
+    }
+    let iv0 = 0;
+    for (let ii = 0; ii < arcs.length; ii++) {
+      const arc = arcs[ii];
+      let div = (arc.hasOwnProperty('dt')) ? arc.dt : Math.abs(arc.L);
+      if (iv-iv0 <= div || ii+1 == arcs.length) {
+        const frac = (iv-iv0) / div;
+        let s = ARCS.arc_state(arc, frac * arc.L);
+        return {x0:s.x, y0:s.y, q0:s.q};
+      }
+      iv0 += div;
+    }
+  } else if (thing.hasOwnProperty('states')) {
+    let t0 = 0;
+    for (let ii = 1; ii < thing.states.length; ii++) {
+      let t0 = thing.states[ii-1].t;
+      let t1 = thing.states[ii].t;
+      if (iv <= t1 || ii+1 == thing.states.length) {
+        const frac = (iv-t0)/(t1-t0);
+        const x0 = thing.states[ii-1].x;
+        const y0 = thing.states[ii-1].y;
+        const q0 = thing.states[ii-1].q;
+        return {
+          x0:x0+frac*(thing.states[ii].x-x0),
+          y0:y0+frac*(thing.states[ii].y-y0),
+          q0:q0+frac*ARCS.pimod(thing.states[ii].q-q0),
+        };
+      }
+    }
+  }
+  return {x0:0, y0:0, q0:0};
+}
+
 let draw_text = function(txt, ctx) {
   if (!ctx || !txt) return;
   let font = txt.font;
@@ -102,7 +144,7 @@ let draw_text = function(txt, ctx) {
   ctx.scale(1,-1);
 }
 
-let draw_thing = function(thing, ctx, toggleable, togname) {
+let draw_thing = function(thing, ctx, toggleable, togname, invar=0) {
   if (!ctx) return;
   try {
     if (thing && typeof(thing) == "object") {
@@ -126,15 +168,22 @@ let draw_thing = function(thing, ctx, toggleable, togname) {
           draw_text(thing,ctx);
         } else if (thing.draw_type == 'image') {
           draw_image(thing,ctx);
+        } else if (thing.draw_type == 'animation') {
+          let rslts = draw_animation(thing, ctx, invar);
+          ctx.save();
+          ctx.translate(rslts.x0, rslts.y0);
+          ctx.rotate(rslts.q0);
+          draw_thing(thing.items, ctx, toggleable, togname, invar);
+          ctx.restore();
         } else if (ctx.RenderFuncs && ctx.RenderFuncs.hasOwnProperty(thing.draw_type)) {
           ctx.RenderFuncs[thing.draw_type](thing,ctx);
         }
       } else {
         for (const [key, val] of Object.entries(thing)) {
           if (Array.isArray(val)) {
-            val.forEach(v => draw_thing(v, ctx, toggleable, togname));
+            val.forEach(v => draw_thing(v, ctx, toggleable, togname, invar));
           } else {
-            draw_thing(val, ctx, toggleable, togname);
+            draw_thing(val, ctx, toggleable, togname, invar);
           }
         }  
       }
@@ -153,7 +202,8 @@ let draw = function(ctx, data, togname) {
   ctx.draw_mouse();
   let toggleable = ctx.canvas.parentElement.querySelector('div.toggleable');
   while (toggleable.firstChild) toggleable.removeChild(toggleable.lastChild);
-  draw_thing(data, ctx, toggleable, togname);
+  let iv = data.__independent_variable__;
+  draw_thing(data, ctx, toggleable, togname, iv);
   ctx.restore();
 }
 

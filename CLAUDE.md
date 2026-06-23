@@ -47,9 +47,18 @@ This repo is a collection of standalone ES module JavaScript files in `js/` — 
 
 - **`js/zoom_pan_canvas.js`** — Low-level canvas with zoom/pan support. `initialize_map(div)` returns a canvas context with a custom `get_transform()` method that callers use to compute zoom-invariant sizes.
 
-- **`js/generic_map.js`** — Builds on `zoom_pan_canvas.js`. `setup_generic_map(div, DRAW_DATA, DRAW_EXT)` takes a `DRAW_DATA` object/array and recursively searches it for items with a `draw_type` field. Built-in types: `polygon`, `circle`, `text`, `image`, `arc`. Custom types can be registered via `DRAW_EXT = { my_type: function(obj, ctx) {...} }`. Objects with `draw_toggle` keys create toggle groups. Returns `{resize}`.
+- **`js/generic_map.js`** — Builds on `zoom_pan_canvas.js`. `setup_generic_map(div, DRAW_DATA, DRAW_EXT)` takes a `DRAW_DATA` object/array and recursively searches it for items with a `draw_type` field. Built-in types: `polygon`, `circle`, `text`, `image`, `arc`, `animation`. Custom types can be registered via `DRAW_EXT = { my_type: function(obj, ctx) {...} }`. Objects with `draw_toggle` keys create toggle groups. Returns `{resize}`.
 
-- **`js/arcs.js`** — Arc math utilities used by `generic_map.js`.
+  **`draw_type: 'animation'`** — Animates child `items` along a path using a global independent variable read from `DRAW_DATA.__independent_variable__`. The animation object fields:
+  - `arc_path` — array of arc objects (`{x0,y0,q0,k,L}`). Each arc's "duration" is `|L|` unless the arc has a `dt` field. Position/heading interpolated via `ARCS.arc_state`.
+  - `states` — alternative to `arc_path`: array of `{x,y,q,t}` waypoints; interpolated linearly (heading via `pimod` for wrap-around).
+  - `independent_variable_scale` — multiplier applied to `__independent_variable__` before indexing into the path (useful to map a normalized time to a distance).
+  - `draw_arc` — if present, its properties (e.g. `{stroke, stroke_width}`) are merged with each arc and drawn as background path lines.
+  - `items` — any draw object(s) rendered in the local frame (origin = current position, x-axis = current heading).
+
+  The canvas `ctx` is saved, translated to position, rotated to heading, `items` drawn, then restored. Works correctly with the global `scale(1,-1)` — `ctx.rotate(q)` produces world-space heading `q`.
+
+- **`js/arcs.js`** — Arc math utilities used by `generic_map.js`. `arcs_state(arcs, distance)` supports negative-`L` arcs (reverse direction) — it passes `distance` or `-distance` to `arc_state` based on the sign of `arc.L`.
 
 - **`js/playback.js`** — `setup_playback(parentNode, callback)` injects a Bootstrap-styled play/pause/seek control bar into `parentNode`. Calls `callback(currenttime)` during playback.
 

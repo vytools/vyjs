@@ -313,18 +313,13 @@ export function mouse_down(MAPFUNCS, arcpath, e) {
 
 export function arcs_state(arcs, distance) {
     for (var ii = 0; ii < arcs.length; ii++) {
-        if ( distance < arc_length(arcs[ii]) ) {
-            let as = arc_state(arcs[ii], distance);
+        let l = arc_length(arcs[ii]);
+        if ( (distance < l && l > 0) || ii+1 == arcs.length) {
+            let as = arc_state(arcs[ii], arcs[ii].L >= 0 ? distance : -distance);
             as.i = ii;
             return as;
         }
-        distance -= arc_length(arcs[ii]);
-    }
-    if (arcs.length > 0) {
-        let arc = arcs[arcs.length-1];
-        let as = arc_state(arc, distance + arc_length(arc));
-        as.i = arcs.length-1;
-        return as;
+        distance -= l;
     }
     return null
 }

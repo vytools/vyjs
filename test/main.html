@@ -141,6 +141,59 @@ MAPFUNCS.CANVAS.addEventListener('mouseup',(e) => {
 // *******************************************************************************
 
 
+// TEST ANIMATION ************************************************************
+const ANIM_PERIOD = 10;
+const ARC_PATH = [
+  {x0:0,  y0:300, q0:0,          k:0.02,  L:25*Math.PI},
+  {x0:50, y0:350, q0:Math.PI/2,  k:0,     L:80},
+  {x0:50, y0:430, q0:Math.PI/2,  k:0.02,  L:25*Math.PI},
+  {x0:0,  y0:480, q0:Math.PI,    k:-0.02, L:-25*Math.PI},
+  {x0:50, y0:530, q0:-Math.PI/2, k:0.0,   L:-80},
+];
+const LTOT = ARCS.arcs_length(ARC_PATH);
+DRAW_DATA.animation = {
+  draw_type: 'animation',
+  independent_variable_scale:LTOT/ANIM_PERIOD,
+  arc_path: ARC_PATH,
+  draw_arc:{stroke: 'steelblue', stroke_width:1},
+  items: [
+    {draw_type:'circle', x:0,  y:0, radius:8, fill:'steelblue', stroke:'navy', stroke_width:1},
+    {draw_type:'circle', x:12, y:0, radius:4, fill:'red'}
+  ]
+};
+
+// Make a second one where the timing is dictated by dt
+DRAW_DATA.animation1 = JSON.parse(JSON.stringify(DRAW_DATA.animation));
+DRAW_DATA.animation1.independent_variable_scale = 0;
+let dt = 0;
+DRAW_DATA.animation1.arc_path.forEach(p => {
+  p.x0 += 30;
+  dt += 1;
+  p.dt = dt;
+  DRAW_DATA.animation1.independent_variable_scale += p.dt;
+});
+DRAW_DATA.animation1.independent_variable_scale /= ANIM_PERIOD;
+
+// Make a third with states instead of arc_path
+let t = 0;
+DRAW_DATA.animation2 = JSON.parse(JSON.stringify(DRAW_DATA.animation1));
+delete DRAW_DATA.animation2.arc_path;
+DRAW_DATA.animation2.independent_variable_scale = 1/ANIM_PERIOD;
+DRAW_DATA.animation2.states = [];
+[0,0.2,0.4,0.6,0.8,1].forEach(prcnt => {
+  let state = ARCS.arcs_state(ARC_PATH,prcnt*LTOT);
+  DRAW_DATA.animation2.states.push({t:prcnt, x:state.x+60, y:state.y, q:state.q});
+});
+
+let anim_t0 = performance.now();
+(function animStep() {
+  DRAW_DATA.__independent_variable__ = ((performance.now() - anim_t0) / 1000) % ANIM_PERIOD;
+  MAPFUNCS.draw();
+  requestAnimationFrame(animStep);
+})();
+// ***************************************************************************
+
+
 // TEST DEFINITIONS **************************************************************
 let container = document.querySelector('flexitem#df');
 
