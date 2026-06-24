@@ -296,7 +296,7 @@ export function mouse_down(MAPFUNCS, arcpath, e) {
       for (let arc of arcpath.nodes[ii].arcs) {
         let prcnt = percent_along_arc(arc, P.x, P.y);
         if (prcnt < 1 && prcnt > 0) {
-          let s = arc_state(arc, prcnt*Math.abs(arc.L));
+          let s = arc_state(arc, prcnt*arc.L);
           if (screendist(MAPFUNCS,P,s) < arcpath.node_pix) {
             let states = arcpath.states();
             states.splice(ii+1, 0, s);
@@ -342,7 +342,7 @@ export function make_arc_path(x, y, q, kLlist) {
     let p = {x,y,q,k:0};
     return kLlist.filter(kl => Math.abs(kl.length) > EPSILON).map(kl => {
       let arc = {x0:p.x, y0:p.y, q0:p.q, k:kl.curvature, L:kl.length};
-      p = arc_state(arc, Math.abs(kl.length));
+      p = arc_state(arc, kl.length);
       return arc;
     });
 }
@@ -356,7 +356,7 @@ const percent_along_lineseg = function(x0, y0, x1, y1, x, y) {
 }
 
 export function percent_along_arc(arc, x, y) {
-  let final_state = arc_state(arc, arc_length(arc));
+  let final_state = arc_state(arc, arc.L);
   if (Math.abs(arc.k) < SMALL) {
     return percent_along_lineseg(arc.x0, arc.y0, final_state.x, final_state.y, x, y);
   }

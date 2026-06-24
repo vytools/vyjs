@@ -47,18 +47,23 @@ This repo is a collection of standalone ES module JavaScript files in `js/` — 
 
 - **`js/zoom_pan_canvas.js`** — Low-level canvas with zoom/pan support. `initialize_map(div)` returns a canvas context with a custom `get_transform()` method that callers use to compute zoom-invariant sizes.
 
-- **`js/generic_map.js`** — Builds on `zoom_pan_canvas.js`. `setup_generic_map(div, DRAW_DATA, DRAW_EXT)` takes a `DRAW_DATA` object/array and recursively searches it for items with a `draw_type` field. Built-in types: `polygon`, `circle`, `text`, `image`, `arc`, `animation`. Custom types can be registered via `DRAW_EXT = { my_type: function(obj, ctx) {...} }`. Objects with `draw_toggle` keys create toggle groups. Returns `{resize}`.
+- **`js/generic_map.js`** — Builds on `zoom_pan_canvas.js`. `setup_generic_map(div, DRAW_DATA, DRAW_EXT)` takes a `DRAW_DATA` object/array and recursively searches it for items with a `draw_type` field. Built-in types: `polygon`, `circle`, `text`, `image`, `arc`, `spline`, `animation`. Custom types can be registered via `DRAW_EXT = { my_type: function(obj, ctx) {...} }`. Objects with `draw_toggle` keys create toggle groups. Returns `{resize}`.
+
+  **`draw_type: 'spline'`** — Draws a natural cubic spline through `obj.spline` (a list of `{t,x,y}` knots) using `SPLINES.spline_bezier_segments`. Each spline segment is exactly representable as one cubic bezier (the Hermite-to-bezier conversion), so it's drawn via `ctx.bezierCurveTo` with no sampling. The bezier control points are computed once and cached on `obj._bezier`.
 
   **`draw_type: 'animation'`** — Animates child `items` along a path using a global independent variable read from `DRAW_DATA.__independent_variable__`. The animation object fields:
   - `arc_path` — array of arc objects (`{x0,y0,q0,k,L}`). Each arc's "duration" is `|L|` unless the arc has a `dt` field. Position/heading interpolated via `ARCS.arc_state`.
-  - `states` — alternative to `arc_path`: array of `{x,y,q,t}` waypoints; interpolated linearly (heading via `pimod` for wrap-around).
+  - `spline` — alternative to `arc_path`: a list of `{t,x,y}` knots fit to a natural cubic spline (`SPLINES.compute_spline_knots`, cached on `thing.spline_knots`); position/heading (heading from the spline's dx/dt, dy/dt) interpolated via `SPLINES.spline_state`.
+  - `states` — alternative to `arc_path`/`spline`: array of `{x,y,q,t}` waypoints; interpolated linearly (heading via `pimod` for wrap-around).
   - `independent_variable_scale` — multiplier applied to `__independent_variable__` before indexing into the path (useful to map a normalized time to a distance).
-  - `draw_path` — if present, its properties (e.g. `{stroke, stroke_width}`) are merged with each arc and drawn as background path lines.
+  - `draw_path` — if present, its properties (e.g. `{stroke, stroke_width}`) are merged with each arc (or, for `spline`, drawn as the spline curve) as background path lines.
   - `items` — any draw object(s) rendered in the local frame (origin = current position, x-axis = current heading).
 
   The canvas `ctx` is saved, translated to position, rotated to heading, `items` drawn, then restored. Works correctly with the global `scale(1,-1)` — `ctx.rotate(q)` produces world-space heading `q`.
 
 - **`js/arcs.js`** — Arc math utilities used by `generic_map.js`. `arcs_state(arcs, distance)` supports negative-`L` arcs (reverse direction) — it passes `distance` or `-distance` to `arc_state` based on the sign of `arc.L`.
+
+- **`js/splines.js`** — Natural cubic spline utilities (ported from `numerical_methods/assignments/cubic_spline`), used by `generic_map.js` for `draw_type: 'spline'` and animation `spline` paths. `compute_spline_knots(spline)` fits separate natural cubic splines to `x(t)` and `y(t)` for a list of `{t,x,y}` knots; `spline_state(knots, t)` evaluates position/heading (clamped to the knot range) at a given `t`; `spline_bezier_segments(spline)` converts each knot interval into exact cubic-bezier control points for drawing.
 
 - **`js/playback.js`** — `setup_playback(parentNode, callback)` injects a Bootstrap-styled play/pause/seek control bar into `parentNode`. Calls `callback(currenttime)` during playback.
 
@@ -72,7 +77,7 @@ This repo is a collection of standalone ES module JavaScript files in `js/` — 
 
 ### vydisp — the display shell
 
-`esbuild/vydisp.html` + `esbuild/vydisp.js` form a reusable host for simulations. `vydisp.html` provides a fixed layout (toolbar with play/pause/follow/restart, sidebar with params panel and alerts). `vydisp.js` exports `setup(VYD)` which wires the toolbar, map, and definition form. The `VYD` object passed in must have:
+`esbuild/vydisp.js` form a reusable host for simulations. `init_vydisp()` provides a fixed layout (toolbar with play/pause/follow/restart, sidebar with params panel and alerts). `vydisp.js` exports `setup_vydisp(VYD)` which wires the toolbar, map, and definition form. The `VYD` object can have (only DRAWDATA is required)
 - `DRAWDATA`, `DRAWEXT` — draw data and custom drawers
 - `defobj` — definition form config object
 - `step()` — called on each simulation tick; returns false when done

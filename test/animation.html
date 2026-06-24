@@ -1,0 +1,36 @@
+<html><body></body><script type="module">
+import { setup_init_vydisp } from "../esbuild/vydisp.js";
+
+// Create VYD (include DRAWDATA and MAX_TIME). The bot object follows
+// the "animation" draw_type format: the "items" are drawn following the "spline"
+// Setup some knots in a spline (use vyjs/js/splines.js format)
+// Set the MAX_TIME to match the time at the last knot
+const VYD = {
+  MAX_TIME: 7,
+  DRAWDATA: {
+    measuring_tool:1,
+    bot: {
+      draw_type: 'animation',
+      independent_variable_scale:1,
+      spline:[
+        {t:0, x:0, y:0},
+        {t:3, x:1, y:1},
+        {t:6, x:2, y:-1},
+        {t:7, x:3, y:0},
+      ],
+      draw_path:{stroke: 'black', stroke_width:1},
+      items: [
+        {draw_type:'circle', x:0,    y:0, radius:0.1, fill:'steelblue', stroke:'black', stroke_width:0.02},
+        {draw_type:'circle', x:0.15, y:0, radius:0.05, fill:'black'}
+      ]
+    }
+  }
+}
+
+// Setup the path
+setup_init_vydisp(VYD);
+
+// Center the map at a point that puts the path in the center of the window
+VYD.MAPFUNCS.centerMapWithDimensions(0, 0, 6, 6); //xcenter, ycenter, width, height
+
+</script></html>

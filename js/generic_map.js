@@ -1,6 +1,7 @@
 import { initialize_map } from "./zoom_pan_canvas.js";
 import { version } from "./version.js";
 import * as ARCS from "./arcs.js"
+import * as SPLINES from "./splines.js"
 
 let draw_arc = function(arc, ctx) {
   if (!ctx || !arc) return;
@@ -32,6 +33,27 @@ let draw_arc = function(arc, ctx) {
   }
   if (arc.fill) ctx.fill();
   if (arc.stroke) ctx.stroke();
+}
+
+let draw_spline = function(obj, ctx) {
+  if (!ctx || !obj) return;
+  if (!obj._bezier) {
+     if (obj.spline && obj.spline.length >= 2) {
+      obj._bezier = SPLINES.spline_bezier_segments(obj.spline);
+     } else {
+      return;
+     }
+  }
+  let trnsfrm = ctx.get_transform();
+  if (obj.stroke_width) ctx.lineWidth = obj.stroke_width / trnsfrm.a;
+  if (obj.fill) ctx.fillStyle = obj.fill;
+  if (obj.stroke) ctx.strokeStyle = obj.stroke;
+  
+  ctx.beginPath();
+  ctx.moveTo(obj._bezier[0].x0, obj._bezier[0].y0);
+  obj._bezier.forEach(s => ctx.bezierCurveTo(s.cp1x, s.cp1y, s.cp2x, s.cp2y, s.x1, s.y1));
+  if (obj.fill) ctx.fill();
+  if (obj.stroke) ctx.stroke();
 }
 
 let draw_image = function(img, ctx) {
@@ -82,6 +104,22 @@ let draw_circle = function(circ, ctx) {
 
 let draw_animation = (thing, ctx, invar) => {
   let iv = (thing.independent_variable_scale || 1) * invar;
+  if (thing.hasOwnProperty('biarc_path') && !thing.hasOwnProperty('arc_path')) {
+    thing.arc_path = [];
+    for (var ii = 1; ii < thing.biarc_path.length; ii++) {
+      let arcs = ARCS.biarc(thing.biarc_path[ii-1], thing.biarc_path[ii])
+      if (arcs.length == 2) {
+        let dt = thing.biarc_path[ii].t - thing.biarc_path[ii-1].t;
+        let l1 = Math.abs(arcs[0].L);
+        let l2 = Math.abs(arcs[1].L);
+        arcs[0].dt = l1/(l1+l2)*dt;
+        arcs[1].dt = l2/(l1+l2)*dt;
+        thing.arc_path.push(arcs[0]);
+        thing.arc_path.push(arcs[1]);
+      }
+    }
+  }
+  
   if (thing.hasOwnProperty('arc_path')) {
     const arcs = thing.arc_path;
     for (let ii = 0; ii < arcs.length; ii++) {
@@ -100,6 +138,19 @@ let draw_animation = (thing, ctx, invar) => {
       }
       iv0 += div;
     }
+  } else if (thing.hasOwnProperty('spline')) {
+    if (!thing.hasOwnProperty('spline_knots')) {
+      thing.spline_knots = SPLINES.compute_spline_knots(thing.spline);
+    }
+    if (thing.draw_path) {
+      if (!thing._bezier && thing.spline?.length > 1) {
+        thing._bezier = SPLINES.spline_bezier_segments(thing.spline);
+      }
+      draw_spline({...thing.draw_path, _bezier:thing._bezier}, ctx);
+    }
+
+    const s = SPLINES.spline_state(thing.spline_knots, iv);
+    return {x0:s.x, y0:s.y, q0:s.q};
   } else if (thing.hasOwnProperty('states')) {
     let t0 = 0;
     for (let ii = 1; ii < thing.states.length; ii++) {
@@ -164,6 +215,8 @@ let draw_thing = function(thing, ctx, toggleable, togname, invar=0) {
           draw_arc(thing,ctx);
         } else if (thing.draw_type == 'circle') {
           draw_circle(thing,ctx);
+        } else if (thing.draw_type == 'spline') {
+          draw_spline(thing,ctx);
         } else if (thing.draw_type == 'text') {
           draw_text(thing,ctx);
         } else if (thing.draw_type == 'image') {
@@ -269,7 +322,7 @@ export class GenericMap {
     this.CANVAS.addEventListener('mousedown',(e) => {
       if (this._data.disable_map_events) {
         return;
-      } else if (e.buttons == 1 && e.shiftKey && this._data.measuring_tool && !this._data.measuring_tool._draw_toggle_off_ && this.CTX) {
+      } else if (e.buttons == 1 && e.shiftKey && this._data.measuring_tool && typeof(this._data.measuring_tool)=== 'object' && !this._data.measuring_tool._draw_toggle_off_ && this.CTX) {
         let p = this.CTX.eventToPosition(e); p.y = -p.y;
         this._data.measuring_tool.active = true;
         this._data.measuring_tool.points.points[0] = p;
@@ -280,7 +333,7 @@ export class GenericMap {
     this.CANVAS.addEventListener('mousemove',(e) => {
       if (this._data.disable_map_events) {
         return;
-      } else if (e.buttons == 1 && e.shiftKey && this._data.measuring_tool && this._data.measuring_tool.active && !this._data.measuring_tool._draw_toggle_off_ && this.CTX) {
+      } else if (e.buttons == 1 && e.shiftKey && this._data.measuring_tool && typeof(this._data.measuring_tool)=== 'object' &&  this._data.measuring_tool.active && !this._data.measuring_tool._draw_toggle_off_ && this.CTX) {
         this._data.measuring_tool.points.points[1] = this.CTX.eventToPosition(e);
         this._data.measuring_tool.points.points[1].y = -this._data.measuring_tool.points.points[1].y;
         let p = this._data.measuring_tool.points.points;
@@ -298,7 +351,7 @@ export class GenericMap {
       }
     }, false);
     this.CANVAS.addEventListener('mouseup',(e) => {
-      if (this.CTX && this._data.measuring_tool && !this._data.measuring_tool._draw_toggle_off_ && this._data.measuring_tool.active) {
+      if (this.CTX && this._data.measuring_tool && typeof(this._data.measuring_tool)=== 'object' && !this._data.measuring_tool._draw_toggle_off_ && this._data.measuring_tool.active) {
         this._data.measuring_tool.active = false;
         draw(this.CTX, this._data, null);
       }

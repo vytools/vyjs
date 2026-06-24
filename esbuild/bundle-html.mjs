@@ -124,6 +124,19 @@ function buildPlugins(importMap, baseDir, bundleCdn, vyjsRoot) {
       });
     }
   });
+  plugins.push({
+    name: 'css-text-loader',
+    setup(build) {
+      build.onResolve({ filter: /\.css$/ }, args => ({
+        path: path.resolve(args.resolveDir, args.path),
+        namespace: 'css-text'
+      }));
+      build.onLoad({ filter: /\.css$/, namespace: 'css-text' }, async args => {
+        const css = await fs.readFile(args.path, 'utf8');
+        return { contents: `export default ${JSON.stringify(css)};`, loader: 'js' };
+      });
+    }
+  });
   return plugins;
 }
 

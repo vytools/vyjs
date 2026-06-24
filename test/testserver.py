@@ -17,6 +17,12 @@ def server(port=80):
       if self.path == '/':
         self.path = '/test/main.html';
         self.do_GET()
+      elif self.path == '/main.html':
+        self.path = '/test/main.html';
+        self.do_GET()
+      elif self.path == '/animation.html':
+        self.path = '/test/animation.html';
+        self.do_GET()
       else:
         exclude = set(['.git','.hg','.pycache','node_modules'])
         for root, dirs, files in os.walk(directory, topdown=True):

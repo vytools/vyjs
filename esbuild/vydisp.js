@@ -1,3 +1,6 @@
+import { setup_generic_map } from "../js/generic_map.js";
+import definition_form_css from "../css/definition_form.css";
+
 const insert_rule = function(css) {
   const style = document.createElement('style');
   style.textContent = css;
@@ -28,8 +31,8 @@ const LOGO_SVG = `<svg width="48" height="48" viewBox="0 0 48 48" xmlns="http://
   </g>
 </svg>`;
 
-export function build_html(opts = {}) {
-  add_stylesheet('css/definition_form.css');
+export function init_vydisp(opts = {}) {
+  insert_rule(definition_form_css);
   add_stylesheet(
     'https://cdn.jsdelivr.net/npm/bootstrap@5.0.2/dist/css/bootstrap.min.css',
     'sha384-EVSTQN3/azprG1Anm3QDgpJLIm9Nao0Yz1ztcQTwFspd3yD65VohhpuuCOmLASjC',
@@ -65,7 +68,6 @@ export function build_html(opts = {}) {
       .bracket-nav .round-label {color:#aaa; font-size:0.9em;}
     `);
   }
-
   document.body.classList.add('full');
 
   document.body.insertAdjacentHTML('beforeend', `
@@ -91,7 +93,7 @@ export function build_html(opts = {}) {
           <li>Shift+Scroll to speed up/slow down the simulation</li>
           <li>Shift+DoubleClick to toggle play/pause</li>
           <li>Ctrl+DoubleClick to change from forward to reverse playback</li>
-          <li>Change the configuration parameters and click the down arrow button at the far left below to save and use new parameters</li>
+          <li class="vycfg">Change the configuration parameters and click the down arrow button at the far left below to save and use new parameters</li>
         </ul>
       </div>
       <div id="configure" class="sbc" style="display:none;">
@@ -103,9 +105,9 @@ export function build_html(opts = {}) {
     <div class="toolbar" style="display:flex;">
       <div class="btn-group">
         <button class="btn btn-sm btn-light help" type="button" title="Click for help">Help</button>
-        <button class="btn btn-sm btn-light configure" type="button" title="Click to configure">Configure</button>
+        <button class="btn btn-sm btn-light vycfg configure" type="button" title="Click to configure">Configure</button>
         <button class="btn btn-sm btn-light follow" type="button" title="Click to track the leader during the simulation">Follow</button>
-        <button class="btn btn-sm btn-light loadresults" type="button" title="Click to upload results">
+        <button class="btn btn-sm btn-light vycfg loadresults" type="button" title="Click to upload results">
           <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-upload" viewBox="0 0 16 16">
             <path d="M.5 9.9a.5.5 0 0 1 .5.5v2.5a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1v-2.5a.5.5 0 0 1 1 0v2.5a2 2 0 0 1-2 2H2a2 2 0 0 1-2-2v-2.5a.5.5 0 0 1 .5-.5"/>
             <path d="M7.646 1.146a.5.5 0 0 1 .708 0l3 3a.5.5 0 0 1-.708.708L8.5 2.707V11.5a.5.5 0 0 1-1 0V2.707L5.354 4.854a.5.5 0 1 1-.708-.708z"/>
@@ -131,12 +133,39 @@ export function build_html(opts = {}) {
     <div class="logos">${LOGO_SVG}</div>
     <div class="alerts"></div>
   `);
+  if (!opts?.follow) {
+    document.querySelector('button.follow').style.display = 'none';
+  }
 }
 
-export function setup(VYD, DF, setup_generic_map) {
+export function setup_init_vydisp(VYD, DF = null, opts = {}) {
+  init_vydisp(opts);
+  setup_vydisp(VYD, DF);
+  VYD.fin();
+}
+
+export function setup_vydisp(VYD, DF = null) {
   let SIM = null;
   VYD.FOLLOW = false;
   VYD.PLAYBACK_SPEED_GEAR = 1;
+  if (!VYD.DRAWEXT) VYD.DRAWEXT = {};
+  if (!VYD.hasOwnProperty('set_vyrslts')) {
+    VYD.set_vyrslts = (vyrslts) => { }
+  }
+  if (!VYD.hasOwnProperty('restart')) {
+    VYD.restart = () => { VYD.TIME = 0; }
+  }
+  if (!VYD.hasOwnProperty('step')) {
+    VYD.step = () => {
+      const DT = 0.05;
+      if (!VYD.hasOwnProperty('MAX_TIME')) VYD.MAX_TIME = 10;
+      let not_done = VYD.check_time(VYD.MAX_TIME, DT);
+      VYD.DRAWDATA.__independent_variable__ = VYD.TIME;  
+      if (VYD.TIMEBTN) VYD.TIMEBTN.innerText = `${(VYD.TIME).toFixed(4)}`;
+      VYD.MAPFUNCS.draw();
+      return not_done;
+    }
+  }
   const CONFIGDIV = document.querySelector('#configure');
   const HELPDIV = document.querySelector('#help');
   const TOOLBAR = document.querySelector('div.toolbar');
@@ -257,7 +286,7 @@ export function setup(VYD, DF, setup_generic_map) {
     reader.onload = (ev) => {
       try {
         let data = JSON.parse(ev.target.result);
-        DEFFORM.reload(data);
+        VYD.defobj.reload(data);
         VYD.set_vyrslts([data]);
       } catch(err) {
         VYD.show_alert(`Failed to parse vyrslts.json. Is the syntax correct? ${err}`,8);
@@ -281,7 +310,7 @@ export function setup(VYD, DF, setup_generic_map) {
       } else {
         let filename = prompt('Download to:','vycnfig.json')
         if (!filename) return;
-        DF.download(filename,c);
+        if (DF) DF.download(filename,c);
       }
     }
   });
@@ -294,7 +323,7 @@ export function setup(VYD, DF, setup_generic_map) {
       document.querySelector('button.loadresults').style.display = (VYD.IS_ONLINE) ? 'none' : '';
       VYD.LEVL = data.levl;
       if (VYD.IS_ONLINE && VYD.LEVL == 0) {
-        document.querySelector('button.configure').style.display = 'none'
+        document.querySelectorAll('button.vycfg').forEach(el => el.style.display = 'none');
         CONFIGDIV.style.display = 'none';
       }
       if (data.vyrslts && data.vyrslts.length > 0 && data.vyrslts[0].hasOwnProperty('config')) {
@@ -302,7 +331,7 @@ export function setup(VYD, DF, setup_generic_map) {
         if (data.vycnfig && typeof data.vycnfig === 'object' && Object.keys(data.vycnfig).length > 0) {
           const topFields = VYD.defobj.definitions[VYD.defobj.top] || [];
           const configField = topFields.find(d => d.name === 'config');
-          if (configField) {
+          if (configField && DF) {
             const diffs = DF.diff_objects(data.vycnfig, newconfig, VYD.defobj.definitions, configField.type);
             if (diffs.length > 0) {
               const lines = diffs.map(d => `<li>${d.path}: ${d.val1} &rarr; ${d.val2}</li>`).join('');
@@ -312,7 +341,7 @@ export function setup(VYD, DF, setup_generic_map) {
         }
         data.vycnfig = newconfig; // Overwrite
       }
-      if (data.vycnfig) DEFFORM.reload({config:data.vycnfig});
+      if (data.vycnfig && VYD.defobj?.reload) VYD.defobj.reload({config:data.vycnfig});
       if (data.vyrslts) {
         VYD.set_vyrslts(data.vyrslts);
       }
@@ -335,26 +364,6 @@ export function setup(VYD, DF, setup_generic_map) {
     }
   });
 
-  if (!VYD.defobj.functions) VYD.defobj.functions = {};
-  if (!VYD.defobj.functions.on_load) {
-    VYD.defobj.functions.on_load = function(typ, path, obj) {
-      let output = obj;
-      if (typ == undefined && path == '_' && !obj.hasOwnProperty('config')) { // Loading from vycnfig
-        output = {config:obj};
-      }
-      if (path == '_') { // Loaded top level (could be after loaded from file)
-      }
-      return output;
-    }
-  }
-
-  if (!VYD.defobj.functions.on_save_item) {
-    VYD.defobj.functions.on_save_item = function(typ, path, obj) {
-      window.parent.postMessage({topic:'download_tool_data',type:typ,obj},'*');
-    }
-  }
-  let DEFFORM = {};
-
   VYD.fin = () => {
     VYD.IS_ONLINE = false;
     VYD.IS_VS_CODE = false;
@@ -374,20 +383,45 @@ export function setup(VYD, DF, setup_generic_map) {
     return keepgoing;
   }
 
-  try {
-    DEFFORM = DF.init(document.querySelector('#params'), VYD.defobj);
-    VYD.defobj.reload = DEFFORM.reload;
-  } catch (err) {
-    let msg = `Failed to initialize definitions: ${err}`;
-    VYD.show_alert(msg, 8);
-    throw new Error(msg);
-  }
-  try {
-    VYD.defobj.reload(VYD.defobj.object);
-  } catch (err) {
-    let msg = `Failed to load default object: ${err}: ${JSON.stringify(VYD.defobj.object,null,2)}`;
-    VYD.show_alert(msg, 8);
-    throw new Error(msg);
+  if (VYD.defobj && DF) {
+    if (!VYD.defobj.functions) VYD.defobj.functions = {};
+    if (!VYD.defobj.functions.on_load) {
+      VYD.defobj.functions.on_load = function(typ, path, obj) {
+        let output = obj;
+        if (typ == undefined && path == '_' && !obj.hasOwnProperty('config')) { // Loading from vycnfig
+          output = {config:obj};
+        }
+        if (path == '_') { // Loaded top level (could be after loaded from file)
+        }
+        return output;
+      }
+    }
+
+    if (!VYD.defobj.functions.on_save_item) {
+      VYD.defobj.functions.on_save_item = function(typ, path, obj) {
+        window.parent.postMessage({topic:'download_tool_data',type:typ,obj},'*');
+      }
+    }
+
+    try {
+      let DEFFORM = DF.init(document.querySelector('#params'), VYD.defobj);
+      VYD.defobj.reload = DEFFORM.reload;
+    } catch (err) {
+      let msg = `Failed to initialize definitions: ${err}`;
+      VYD.show_alert(msg, 8);
+      throw new Error(msg);
+    }
+    try {
+      VYD.defobj.reload(VYD.defobj.object);
+    } catch (err) {
+      let msg = `Failed to load default object: ${err}: ${JSON.stringify(VYD.defobj.object,null,2)}`;
+      VYD.show_alert(msg, 8);
+      throw new Error(msg);
+    }
+  } else {
+    document.querySelectorAll('.vycfg').forEach(e => {
+      e.style.display = 'none';
+    })
   }
 }
 
