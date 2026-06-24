@@ -85,8 +85,8 @@ let draw_animation = (thing, ctx, invar) => {
   if (thing.hasOwnProperty('arc_path')) {
     const arcs = thing.arc_path;
     for (let ii = 0; ii < arcs.length; ii++) {
-      if (thing.draw_arc) {
-        draw_arc({...thing.draw_arc, ...arcs[ii]}, ctx);
+      if (thing.draw_path) {
+        draw_arc({...thing.draw_path, ...arcs[ii]}, ctx);
       }
     }
     let iv0 = 0;

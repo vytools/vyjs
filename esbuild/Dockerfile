@@ -4,7 +4,6 @@ WORKDIR /app
 RUN npm install esbuild
 COPY css /app/css
 COPY js /app/js
-COPY esbuild/bundle-html.mjs /app/
-COPY esbuild/bracket.js /app/
-COPY esbuild/vydisp.js /app/
-COPY esbuild/vydisp.html /app/
+COPY esbuild/bundle-html.mjs /app/esbuild/
+COPY esbuild/bracket.js /app/esbuild/bracket.js
+COPY esbuild/vydisp.js /app/esbuild/vydisp.js

@@ -24,14 +24,14 @@ The server serves the repo root at `http://localhost:80` (or specified port), ro
 ### Bundling HTML files
 The Docker image (`vytools/esbuild:latest`) runs `bundle-html.mjs` to produce standalone single-file HTML:
 ```bash
-# Bundle an HTML file (inlines local scripts and CSS, leaves remote CDN URLs alone)
-node esbuild/bundle-html.mjs input.html output.html
-
-# Bundle a JS file using the vydisp template (esbuild/vydisp.html)
-node esbuild/bundle-html.mjs myfile.js output.html
+# Bundle an HTML file — inlines local scripts (src= or inline) and CSS
+node esbuild/bundle-html.mjs input.vyt.html output.html
 
 # Skip minification
-node esbuild/bundle-html.mjs input.html output.html -no-minify
+node esbuild/bundle-html.mjs input.vyt.html output.html --no-minify
+
+# Bundle CDN deps inline (fetches and inlines three.js etc.)
+node esbuild/bundle-html.mjs input.vyt.html output.html --bundle-cdn
 ```
 
 The modules are also published to jsDelivr via GitHub releases. Consumers import them as:
@@ -53,7 +53,7 @@ This repo is a collection of standalone ES module JavaScript files in `js/` — 
   - `arc_path` — array of arc objects (`{x0,y0,q0,k,L}`). Each arc's "duration" is `|L|` unless the arc has a `dt` field. Position/heading interpolated via `ARCS.arc_state`.
   - `states` — alternative to `arc_path`: array of `{x,y,q,t}` waypoints; interpolated linearly (heading via `pimod` for wrap-around).
   - `independent_variable_scale` — multiplier applied to `__independent_variable__` before indexing into the path (useful to map a normalized time to a distance).
-  - `draw_arc` — if present, its properties (e.g. `{stroke, stroke_width}`) are merged with each arc and drawn as background path lines.
+  - `draw_path` — if present, its properties (e.g. `{stroke, stroke_width}`) are merged with each arc and drawn as background path lines.
   - `items` — any draw object(s) rendered in the local frame (origin = current position, x-axis = current heading).
 
   The canvas `ctx` is saved, translated to position, rotated to heading, `items` drawn, then restored. Works correctly with the global `scale(1,-1)` — `ctx.rotate(q)` produces world-space heading `q`.
@@ -83,6 +83,12 @@ This repo is a collection of standalone ES module JavaScript files in `js/` — 
 
 ### Bundling pipeline
 
-`esbuild/bundle-html.mjs` uses esbuild to inline local `<script type="module" src="...">` tags into the HTML (running the full esbuild bundler on each). It also inlines local `<link rel="stylesheet">` tags. Remote URLs (http/https) are left untouched. An `importmap` in the HTML is respected for resolving bare specifiers. PNG/JPG images referenced in bundled JS are base64-inlined automatically.
+`esbuild/bundle-html.mjs` uses esbuild to inline `<script type="module">` tags into the HTML and produce a standalone single-file output. It handles two script forms:
+- **`src=` scripts** (`<script type="module" src="...">`) — runs esbuild with the file as entry point.
+- **Inline scripts** (`<script type="module">...code...</script>`) — runs esbuild via `stdin` with `resolveDir` set to the HTML file's directory so relative imports resolve correctly.
+
+It also inlines local `<link rel="stylesheet">` tags. Remote URLs (http/https) are left untouched. An `importmap` in the HTML is respected for resolving bare specifiers (bare CDN specifiers are marked external unless `--bundle-cdn` is passed). PNG/JPG images referenced in bundled JS are base64-inlined automatically.
+
+**`.vyt.html` format** — challenges use self-contained HTML files with an empty `<head>` and all JS content inline in a single `<script type="module">` block. The bundler processes these via the stdin path above, resolving all relative imports from the file's directory.
 
 The Dockerfile copies `js/`, `css/`, and the esbuild scripts into a Node 20 Alpine image — the image is the deployment artifact for running the bundler.

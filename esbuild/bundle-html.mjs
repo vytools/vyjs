@@ -1,7 +1,11 @@
 // bundle-html.js
 import fs from 'fs/promises';
 import path from 'path';
+import { fileURLToPath } from 'url';
 import esbuild from 'esbuild';
+
+// vyjs root is always the parent of this script's esbuild/ directory
+const VYJS_ROOT = path.dirname(path.dirname(fileURLToPath(import.meta.url)));
 
 // Treat http/https as remote (don’t inline)
 function isRemote(src) {
@@ -49,95 +53,111 @@ function extractImportMap(html) {
   }
 }
 
-async function inlineLocalScript(html, baseDir, minify, bundleCdn) {
-  const importMap = extractImportMap(html);
-
-  const scriptRegex =
-    /<script\b([^>]*?)type="module"([^>]*?)\ssrc="([^"]+)"([^>]*)>([\s\S]*?)<\/script>/gi;
-
-  return replaceAsync(html, scriptRegex, async (full, beforeType, between, src, after, inner) => {
-    if (isRemote(src)) return full;
-
-    const abs = path.resolve(baseDir, src);
-
-    // Build esbuild plugins for importmap resolution
-    const plugins = [];
-    if (importMap) {
-      plugins.push({
-        name: 'importmap-resolver',
-        setup(build) {
-          build.onResolve({ filter: /.*/ }, args => {
-            for (const key in importMap) {
-              const isPrefix = key.endsWith('/');
-              const matches = isPrefix ? args.path.startsWith(key) : args.path === key;
-              if (!matches) continue;
-              const mapped = importMap[key];
-              const rel = isPrefix ? args.path.slice(key.length) : '';
-              if (/^https?:\/\//.test(mapped)) {
-                if (bundleCdn) return { path: mapped + rel, namespace: 'http-url' };
-                return { path: args.path, external: true };
-              }
-              return { path: path.resolve(baseDir, mapped + rel) };
-            }
-            return null;
-          });
-        }
-      });
+// Resolves "@vyjs/<path>" imports straight to the vyjs library root.
+// e.g. @vyjs/esbuild/vydisp.js → <vyjsRoot>/esbuild/vydisp.js
+//      @vyjs/js/arcs.js        → <vyjsRoot>/js/arcs.js
+function buildVyjsPlugin(vyjsRoot) {
+  return {
+    name: 'vyjs-resolver',
+    setup(build) {
+      build.onResolve({ filter: /^@vyjs\// }, args => ({
+        path: path.join(vyjsRoot, args.path.slice('@vyjs/'.length))
+      }));
     }
-    if (bundleCdn) {
-      plugins.push({
-        name: 'http-import',
-        setup(build) {
-          build.onResolve({ filter: /.*/, namespace: 'http-url' }, args => ({
-            path: new URL(args.path, args.importer).toString(),
-            namespace: 'http-url',
-          }));
-          build.onLoad({ filter: /.*/, namespace: 'http-url' }, async args => {
-            const res = await fetch(args.path);
-            if (!res.ok) throw new Error(`Failed to fetch ${args.path}: ${res.status}`);
-            const contents = await res.text();
-            return { contents, loader: 'js' };
-          });
-        }
-      });
-    }
+  };
+}
+
+function buildPlugins(importMap, baseDir, bundleCdn, vyjsRoot) {
+  const plugins = [];
+  if (vyjsRoot) plugins.push(buildVyjsPlugin(vyjsRoot));
+  if (importMap) {
     plugins.push({
-      name: "texture-loader",
+      name: 'importmap-resolver',
       setup(build) {
-
-        build.onResolve({ filter: /\.(png|jpg|jpeg)$/ }, args => {
-          return {
-            path: path.resolve(args.resolveDir, args.path),
-            namespace: 'texture'
-          };
+        build.onResolve({ filter: /.*/ }, args => {
+          for (const key in importMap) {
+            const isPrefix = key.endsWith('/');
+            const matches = isPrefix ? args.path.startsWith(key) : args.path === key;
+            if (!matches) continue;
+            const mapped = importMap[key];
+            const rel = isPrefix ? args.path.slice(key.length) : '';
+            if (/^https?:\/\//.test(mapped)) {
+              if (bundleCdn) return { path: mapped + rel, namespace: 'http-url' };
+              return { path: args.path, external: true };
+            }
+            return { path: path.resolve(baseDir, mapped + rel) };
+          }
+          return null;
         });
-
-        build.onLoad({ filter: /\.(png|jpg|jpeg)$/i, namespace: 'texture' }, async args => {
-          const bin = await fs.readFile(args.path);
-          const ext = path.extname(args.path).slice(1);
-          const base64 = bin.toString('base64');
-          const dataURL = `data:image/${ext};base64,${base64}`;
-          return {
-            contents: `export default "${dataURL}";`,
-            loader: 'js'
-          };
-        });
-
       }
     });
-
-    const result = await esbuild.build({
-      entryPoints: [abs],
-      bundle: true,
-      format: 'esm',
-      minify,
-      write: false,
-      plugins,
+  }
+  if (bundleCdn) {
+    plugins.push({
+      name: 'http-import',
+      setup(build) {
+        build.onResolve({ filter: /.*/, namespace: 'http-url' }, args => ({
+          path: new URL(args.path, args.importer).toString(),
+          namespace: 'http-url',
+        }));
+        build.onLoad({ filter: /.*/, namespace: 'http-url' }, async args => {
+          const res = await fetch(args.path);
+          if (!res.ok) throw new Error(`Failed to fetch ${args.path}: ${res.status}`);
+          const contents = await res.text();
+          return { contents, loader: 'js' };
+        });
+      }
     });
+  }
+  plugins.push({
+    name: 'texture-loader',
+    setup(build) {
+      build.onResolve({ filter: /\.(png|jpg|jpeg)$/ }, args => ({
+        path: path.resolve(args.resolveDir, args.path),
+        namespace: 'texture'
+      }));
+      build.onLoad({ filter: /\.(png|jpg|jpeg)$/i, namespace: 'texture' }, async args => {
+        const bin = await fs.readFile(args.path);
+        const ext = path.extname(args.path).slice(1);
+        const base64 = bin.toString('base64');
+        return { contents: `export default "data:image/${ext};base64,${base64}";`, loader: 'js' };
+      });
+    }
+  });
+  return plugins;
+}
 
-    const js = result.outputFiles[0].text;
+async function inlineLocalScript(html, baseDir, minify, bundleCdn, vyjsRoot) {
+  const importMap = extractImportMap(html);
+  const plugins = buildPlugins(importMap, baseDir, bundleCdn, vyjsRoot);
 
-    return `<script type="module">\n${js}\n</script>`;
+  // Match any <script type="module"> block — with or without src=
+  const scriptRegex = /<script\b([^>]*)type="module"([^>]*)>([\s\S]*?)<\/script>/gi;
+
+  return replaceAsync(html, scriptRegex, async (full, before, after, content) => {
+    const attrs = before + after;
+    const srcMatch = attrs.match(/\bsrc="([^"]+)"/);
+
+    if (srcMatch) {
+      // External src= script
+      const src = srcMatch[1];
+      if (isRemote(src)) return full;
+      const abs = path.resolve(baseDir, src);
+      const result = await esbuild.build({
+        entryPoints: [abs],
+        bundle: true, format: 'esm', minify, write: false, plugins,
+      });
+      return `<script type="module">\n${result.outputFiles[0].text}\n</script>`;
+    } else {
+      // Inline script — bundle via stdin with resolveDir for relative imports
+      const trimmed = content.trim();
+      if (!trimmed) return full;
+      const result = await esbuild.build({
+        stdin: { contents: trimmed, resolveDir: baseDir, loader: 'js' },
+        bundle: true, format: 'esm', minify, write: false, plugins,
+      });
+      return `<script type="module">\n${result.outputFiles[0].text}\n</script>`;
+    }
   });
 }
 
@@ -165,16 +185,12 @@ async function build() {
   let outHtml = '';
   let baseDir = '';
   if (process.argv.length < 4) {
-    console.log('Usage: node bundle-html.js input.html/.js output.html [--no-minify] [--bundle-cdn]');
+    console.log('Usage: node bundle-html.mjs input.html output.html [--no-minify] [--bundle-cdn]');
     return;
-  } else if (process.argv[2].endsWith('.html')) {
+  } else {
     html = await fs.readFile(process.argv[2], 'utf8');
     outHtml = process.argv[3];
-    baseDir = path.dirname(process.argv[2]);
-  } else {
-    let HTML = await fs.readFile('vydisp.html', 'utf8');
-    html = HTML.replace('__SCRIPT__','<script type="module" src="'+process.argv[2]+'"></script>')
-    outHtml = process.argv[3];
+    baseDir = path.dirname(path.resolve(process.argv[2]));
   }
   const flags = process.argv.slice(4);
   const minify = !flags.includes('--no-minify');
@@ -182,8 +198,8 @@ async function build() {
 
   if (outHtml != '') {
     let output = html;
-    // 1) Inline local <script type="module" src="...">
-    output = await inlineLocalScript(output, baseDir, minify, bundleCdn);
+    // 1) Inline local <script type="module" src="..."> and inline scripts
+    output = await inlineLocalScript(output, baseDir, minify, bundleCdn, VYJS_ROOT);
     // 2) Inline local <link rel="stylesheet" href="...">
     output = await inlineLocalCSS(output, baseDir);
     // 3) Strip import map when CDN deps are bundled inline
