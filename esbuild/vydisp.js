@@ -170,6 +170,7 @@ export function setup_vydisp(VYD, DF = null) {
   const HELPDIV = document.querySelector('#help');
   const TOOLBAR = document.querySelector('div.toolbar');
   const SPEEDBTN = TOOLBAR.querySelector('button.speed');
+  SPEEDBTN.style.display = 'none';
   VYD.TIMEBTN = TOOLBAR.querySelector('button.time');
   const MAPDIV = document.querySelector('#map1');
   VYD.MAPFUNCS = setup_generic_map(MAPDIV, VYD.DRAWDATA, VYD.DRAWEXT);
@@ -203,6 +204,14 @@ export function setup_vydisp(VYD, DF = null) {
         }
       },50);
     } else {
+      indicate_(false);
+      clearInterval(SIM);
+      SIM = null;
+    }
+  }
+
+  VYD.stop_playback = () => {
+    if (SIM) {
       indicate_(false);
       clearInterval(SIM);
       SIM = null;
