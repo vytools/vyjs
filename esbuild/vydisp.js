@@ -1,5 +1,15 @@
 import { setup_generic_map } from "../js/generic_map.js";
-import definition_form_css from "../css/definition_form.css";
+
+// Bundled builds (esbuild's css-text-loader plugin, see esbuild/bundle-html.mjs) intercept this
+// dynamic import the same way it would a static one and inline it as `export default "<css text>"`.
+// Loaded raw (e.g. straight from jsDelivr, unbundled) the browser rejects a *.css module import for
+// MIME-type mismatch, so fall back to fetching the file as plain text instead.
+let definition_form_css;
+try {
+  definition_form_css = (await import("../css/definition_form.css")).default;
+} catch (err) {
+  definition_form_css = await fetch(new URL("../css/definition_form.css", import.meta.url)).then(r => r.text());
+}
 
 const insert_rule = function(css) {
   const style = document.createElement('style');
