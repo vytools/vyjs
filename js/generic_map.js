@@ -93,7 +93,7 @@ let draw_circle = function(circ, ctx) {
   let trnsfrm = ctx.get_transform();
   let radius = circ.radius;
   if (circ.scale_with_zoom) radius /= trnsfrm.a;
-  if (circ.stroke_width) ctx.lineWidth = (circ.scale_with_zoom) ? circ.stroke_width/trnsfrm.a : circ.stroke_width; // * trnsfrm.a;
+  if (circ.stroke_width) ctx.lineWidth = circ.stroke_width/trnsfrm.a; // * trnsfrm.a;
   if (circ.fill) ctx.fillStyle = circ.fill;
   if (circ.stroke) ctx.strokeStyle = circ.stroke;
   ctx.beginPath();
