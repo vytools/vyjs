@@ -3,10 +3,14 @@ import { version } from "./version.js";
 import * as ARCS from "./arcs.js"
 import * as SPLINES from "./splines.js"
 
+let transform_scale = function(trnsfrm) {
+  return Math.hypot(trnsfrm.a, trnsfrm.b);
+}
+
 let draw_arc = function(arc, ctx) {
   if (!ctx || !arc) return;
   let trnsfrm = ctx.get_transform();
-  if (arc.stroke_width) ctx.lineWidth = arc.stroke_width / trnsfrm.a;
+  if (arc.stroke_width) ctx.lineWidth = arc.stroke_width / transform_scale(trnsfrm);
   if (arc.fill) ctx.fillStyle = arc.fill;
   if (arc.stroke) ctx.strokeStyle = arc.stroke
   let x0 = arc.x0 || 0;
@@ -45,7 +49,7 @@ let draw_spline = function(obj, ctx) {
      }
   }
   let trnsfrm = ctx.get_transform();
-  if (obj.stroke_width) ctx.lineWidth = obj.stroke_width / trnsfrm.a;
+  if (obj.stroke_width) ctx.lineWidth = obj.stroke_width / transform_scale(trnsfrm);
   if (obj.fill) ctx.fillStyle = obj.fill;
   if (obj.stroke) ctx.strokeStyle = obj.stroke;
   
@@ -68,7 +72,7 @@ let draw_image = function(img, ctx) {
 let draw_polygon = function(poly, ctx) {
   if (!poly || poly.points.length < 2 || !ctx) return;
   let trnsfrm = ctx.get_transform();
-  if (poly.stroke_width) ctx.lineWidth = poly.stroke_width / trnsfrm.a;
+  if (poly.stroke_width) ctx.lineWidth = poly.stroke_width / transform_scale(trnsfrm);
   if (poly.fill) ctx.fillStyle = poly.fill;
   if (poly.stroke) ctx.strokeStyle = poly.stroke
   ctx.beginPath();
@@ -79,7 +83,7 @@ let draw_polygon = function(poly, ctx) {
 
   if (poly.circles && poly.circles.radius && poly.circles.color) {
     ctx.fillStyle = poly.circles.color;
-    let r = (poly.circles.scale_with_zoom) ? poly.circles.radius/trnsfrm.a : poly.circles.radius;
+    let r = (poly.circles.scale_with_zoom) ? poly.circles.radius/transform_scale(trnsfrm) : poly.circles.radius;
     poly.points.forEach(p => {
       ctx.beginPath();
       ctx.arc(p.x, p.y, r, 0, 2 * Math.PI, false);
@@ -92,8 +96,8 @@ let draw_circle = function(circ, ctx) {
   if (!ctx || !circ) return;
   let trnsfrm = ctx.get_transform();
   let radius = circ.radius;
-  if (circ.scale_with_zoom) radius /= trnsfrm.a;
-  if (circ.stroke_width) ctx.lineWidth = circ.stroke_width/trnsfrm.a; // * trnsfrm.a;
+  if (circ.scale_with_zoom) radius /= transform_scale(trnsfrm);
+  if (circ.stroke_width) ctx.lineWidth = circ.stroke_width/transform_scale(trnsfrm);
   if (circ.fill) ctx.fillStyle = circ.fill;
   if (circ.stroke) ctx.strokeStyle = circ.stroke;
   ctx.beginPath();
@@ -180,7 +184,7 @@ let draw_text = function(txt, ctx) {
     let px = parseInt(splt[0]);
     if (splt.length > 1 && !isNaN(px)) {
       let trnsfrm = ctx.get_transform();
-      splt[0] = ''+(px/trnsfrm.a);
+      splt[0] = ''+(px/transform_scale(trnsfrm));
       font = splt.join('px');
       //console.log('font',font);
     }
