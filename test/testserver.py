@@ -23,6 +23,11 @@ def server(port=80):
       elif self.path == '/animation.html':
         self.path = '/test/animation.html';
         self.do_GET()
+      elif self.path == '/api/test_server':
+        # Probed by main.html to tell whether it's being served locally by
+        # this dev server (so it should use relative "../" import paths) or
+        # from somewhere else entirely (so it should fall back to the CDN).
+        sendx(self, 'application/json', b'{"test_server": true}')
       else:
         exclude = set(['.git','.hg','.pycache','node_modules'])
         for root, dirs, files in os.walk(directory, topdown=True):

@@ -132,7 +132,7 @@ export function initialize_map(CANVAS) {
     } catch(err) { }
   }
 
-  CTX.draw_mouse = function() {
+  CTX.draw_mouse = function(label) {
     this.save();
     this.setTransform(1, 0, 0, 1, 0, 0);
     let w = this.canvas.width, h = this.canvas.height;
@@ -140,6 +140,10 @@ export function initialize_map(CANVAS) {
     setFont(this);
     this.textAlign = 'right';
     fillText(this, this.SCREEN.mouseLoc, w-10, h-10);
+    if (label) {
+      this.textAlign = 'left';
+      fillText(this, label, 10, h-10);
+    }
     this.restore();
   }
 

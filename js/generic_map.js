@@ -72,7 +72,8 @@ let draw_image = function(img, ctx) {
 let draw_polygon = function(poly, ctx) {
   if (!poly || poly.points.length < 2 || !ctx) return;
   let trnsfrm = ctx.get_transform();
-  if (poly.stroke_width) ctx.lineWidth = poly.stroke_width / transform_scale(trnsfrm);
+  ctx.lineWidth = poly.stroke_width || 1;
+  if (poly.scale_with_zoom) ctx.lineWidth /= transform_scale(trnsfrm);
   if (poly.fill) ctx.fillStyle = poly.fill;
   if (poly.stroke) ctx.strokeStyle = poly.stroke
   ctx.beginPath();
@@ -96,8 +97,11 @@ let draw_circle = function(circ, ctx) {
   if (!ctx || !circ) return;
   let trnsfrm = ctx.get_transform();
   let radius = circ.radius;
-  if (circ.scale_with_zoom) radius /= transform_scale(trnsfrm);
-  if (circ.stroke_width) ctx.lineWidth = circ.stroke_width/transform_scale(trnsfrm);
+  ctx.lineWidth = circ.stroke_width || 1;
+  if (circ.scale_with_zoom) {
+    ctx.lineWidth /= transform_scale(trnsfrm);
+    radius /= transform_scale(trnsfrm);
+  }
   if (circ.fill) ctx.fillStyle = circ.fill;
   if (circ.stroke) ctx.strokeStyle = circ.stroke;
   ctx.beginPath();
@@ -256,7 +260,7 @@ let draw = function(ctx, data, togname) {
   ctx.clear_all();
   ctx.scale(1,-1);
   ctx.draw_grid();
-  ctx.draw_mouse();
+  ctx.draw_mouse('v' + version);
   let toggleable = ctx.canvas.parentElement.querySelector('div.toggleable');
   while (toggleable.firstChild) toggleable.removeChild(toggleable.lastChild);
   let iv = data.__independent_variable__;
@@ -351,7 +355,7 @@ export class GenericMap {
       } else if (this.CTX && this.CTX.handleMouseMove(e)) {
         draw(this.CTX, this._data, null);
       } else if (this.CTX) {
-        this.CTX.draw_mouse();
+        this.CTX.draw_mouse('v' + version);
       }
     }, false);
     this.CANVAS.addEventListener('mouseup',(e) => {

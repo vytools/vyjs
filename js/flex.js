@@ -25,6 +25,10 @@ function manageResize(md, sizeProp, posProp) {
 	var sumGrow = prevGrow + nextGrow;
 	var lastPos = md[posProp];
 
+	var iframes = document.querySelectorAll('iframe');
+	var prevPointerEvents = [];
+	iframes.forEach(function (f) { prevPointerEvents.push(f.style.pointerEvents); f.style.pointerEvents = 'none'; });
+
 	function onMouseMove(mm) {
 		var pos = mm[posProp];
 		var d = pos - lastPos;
@@ -62,11 +66,13 @@ function manageResize(md, sizeProp, posProp) {
 		resizep(mu);
 
 		if (posProp === 'pageX') {
-			r.style.cursor = 'ew-resize'; 
+			r.style.cursor = 'ew-resize';
 		} else {
 			r.style.cursor = 'ns-resize';
 		}
-		
+
+		iframes.forEach(function (f, i) { f.style.pointerEvents = prevPointerEvents[i]; });
+
 		window.removeEventListener("mousemove", onMouseMove);
 		window.removeEventListener("mouseup", onMouseUp);
 	}
