@@ -55,6 +55,7 @@
 // Edit the code in the middle panel; it re-runs automatically shortly after
 // you stop typing, or immediately on Ctrl/Cmd+Enter.
 // ---------------------------------------------------------------------------
+import { vyjsver } from './js/version.js';
 const IMG1_SRC = 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABIAAAASCAMAAABhEH5lAAAABGdBTUEAALGPC/xhBQAAAa1QTFRF5H444Ho14Xo15oQ45YQ45oI56os854Y443423HYtAAAA3HctzGAT9plE+qZM/eHE+bt///36/dy6+bVz+aFH/OHI/Nm1+aRP/vXr//jw5o9p/N/E/vPo9Kpw9bWD/vPq/vTs/enX/erW/MqV/ObT+8aR9ZM5+Zs7+sma4XRC+dGv98CR+LFs/dWt/vDh+9Ov+uDN+uDP/vj0/fDo9JRA8JFG9beG+ta686ds+6hQ+adV9ruN5oJN/PLt9MKj53Yx+qBC+J1C7qN599bD6IVM/O3h8Jxa97Bu//79+7Vu+Ld787mW/fTt8Jtf6oE78pA795c5/fPs64I77JRZ/NOq/Nu8/Lhv/unU/u7d3WQv4no343s3///++Zw995k843w3/vXt5XYy64s75H045oE45X846oo75oI554Q55YA46IU66IQ65oE56ok66IY654M56Yg62l0p3GAq3WMr5XMu6nwx53gv4Gcs/vv54mwt64Ay7YQz5HAu74c053Uv6Yc6+pw5+Jg48Ys084416Xow9JI27H8y9ZI3+Zo59pU374Y0+54695c48ow1////AGx8/AAAAA10Uk5T/fn5+fn9/fn5ywDLKOfV8VwAAAEpSURBVBjTVc5TcwMBFAXgWyVZ1LZt27YV2+aGm0YNNvc3d9PMdKbn8Xs45wBJEyKtwWi2s06bXi2kaBLoGpXX7wuFo4lkOsdlZQIaCJX3+elP4gU5BSKv/1F6uj69Upav72rQ+n03yKdnpixFFgy+0Nna1CCidPagJHkLGEPhVb6nuQNx7pCXjAPM4ahyoLuBa2lCnOclZQV7NKHkq+rrCm2IG5lUzARsInk+MYTY2V7bj8t3sYgOnKU/48ON2FrsRbyOBDVgS+ceLjcLo4h9mUU8DgYUoM9xL3ixNTaCC6k93A14JKDmsu+IV8VtXNo/Qpx0i0GYjb99vN7nbxnmZIdhulwVQMl+P/PrkWDA43Z9EkAL5P8EaCBpqoq1OKwmnUYhEVcSNPkD6BN5Z82OyewAAAAASUVORK5CYII=';
 
 const LIST = document.querySelector('#example-list');
@@ -68,20 +69,6 @@ CODE.setOptions({fontSize: '13px', tabSize: 2, useSoftTabs: true, showPrintMargi
 
 let selectedIdx = 0;
 let debounceTimer = null;
-
-// True when this page is being served locally by test/testserver.py (or the
-// docker compose wrapper around it) -- detected via a REST endpoint only
-// that server implements, rather than a hardcoded flag someone has to flip.
-// When true, buildFrameDoc() below points examples' imports at the local
-// "../" repo files; otherwise (e.g. this file was opened some other way) it
-// falls back to the jsDelivr CDN address.
-let TEST_SERVER = false;
-try {
-  const resp = await fetch('/api/test_server');
-  TEST_SERVER = resp.ok;
-} catch (err) {
-  TEST_SERVER = false;
-}
 
 const EXAMPLES = [
 {
@@ -451,12 +438,8 @@ import * as ARCS from '__ADDR__/js/arcs.js';
 
 const MAPDIV = document.querySelector('#mapdiv');
 const ANIM_PERIOD = 10; // seconds per loop
-const ARC_PATH = ARCS.make_arc_path(0, 300, 0, [
-  {curvature:0.02, length: 25*Math.PI},
-  {curvature:0, length: 80},
-  {curvature:0.02, length: 25*Math.PI},
-  {curvature:-0.02, length: -25*Math.PI},
-  {curvature:0, length: -80}
+const ARC_PATH = ARCS.make_arc_path(0, 0, 0, [
+  {curvature: 0.02, length: 2*Math.PI/0.02} // one full circular loop, radius 50
 ]);
 const LTOT = ARCS.arcs_length(ARC_PATH);
 let DRAW_DATA = {
@@ -479,9 +462,9 @@ let t0 = performance.now();
   MAPFUNCS.draw();
   requestAnimationFrame(animStep);
 })();
-MAPFUNCS.centerMapWithDimensions(25,455,150,350)
+MAPFUNCS.centerMapWithDimensions(0,50,150,150)
 // independent_variable_scale converts the 0..ANIM_PERIOD clock into distance
-// travelled along the arc_path (so speed is constant regardless of curvature).
+// travelled along the arc_path, so angular speed stays constant around the loop.
 <\/script>`
 },
 {
@@ -494,16 +477,13 @@ import * as ARCS from '__ADDR__/js/arcs.js';
 
 const MAPDIV = document.querySelector('#mapdiv');
 const ANIM_PERIOD = 10;
-const ARC_PATH = ARCS.make_arc_path(0, 300, 0, [
-  {curvature:0.02, length: 25*Math.PI},
-  {curvature:0, length: 80},
-  {curvature:0.02, length: 25*Math.PI},
-  {curvature:-0.02, length: -25*Math.PI},
-  {curvature:0, length: -80}
+const ARC_PATH = ARCS.make_arc_path(0, 0, 0, [
+  {curvature: 0.02, length: 50*Math.PI}, // half circle, radius 50
+  {curvature: 0, length: 100}             // straight run
 ]);
-let dt = 0, ivscale = 0;
-ARC_PATH.forEach(p => { dt += 1; p.dt = dt; ivscale += p.dt; }); // 1 time-unit per segment
-ivscale /= ANIM_PERIOD;
+ARC_PATH[0].dt = 8; // slow through the curve
+ARC_PATH[1].dt = 2; // fast on the straight
+const ivscale = (ARC_PATH[0].dt + ARC_PATH[1].dt) / ANIM_PERIOD;
 let DRAW_DATA = {
   animation1:{
     draw_type: 'animation',
@@ -524,9 +504,10 @@ let t0 = performance.now();
   MAPFUNCS.draw();
   requestAnimationFrame(animStep);
 })();
-MAPFUNCS.centerMapWithDimensions(25,455,150,350)
-// Compare the speed through the curved vs. straight segments here against
-// the "Animation - arc_path" example, where speed is constant instead.
+MAPFUNCS.centerMapWithDimensions(-50,50,180,180)
+// Each arc gets an explicit .dt (duration) instead of using its arc length --
+// watch the dot linger through the slow curve (dt:8) then zip down the fast
+// straight (dt:2), unlike "Animation - arc_path" where speed stays constant.
 <\/script>`
 },
 {
@@ -535,23 +516,16 @@ MAPFUNCS.centerMapWithDimensions(25,455,150,350)
   code:
 `<script type="module">
 import { setup_generic_map } from '__ADDR__/js/generic_map.js';
-import * as ARCS from '__ADDR__/js/arcs.js';
 
 const MAPDIV = document.querySelector('#mapdiv');
 const ANIM_PERIOD = 10;
-const ARC_PATH = ARCS.make_arc_path(0, 300, 0, [
-  {curvature:0.02, length: 25*Math.PI},
-  {curvature:0, length: 80},
-  {curvature:0.02, length: 25*Math.PI},
-  {curvature:-0.02, length: -25*Math.PI},
-  {curvature:0, length: -80}
-]);
-const LTOT = ARCS.arcs_length(ARC_PATH);
-let states = [];
-[0,0.2,0.4,0.6,0.8,1].forEach(prcnt => {
-  let s = ARCS.arcs_state(ARC_PATH, prcnt*LTOT);
-  states.push({t:prcnt, x:s.x+60, y:s.y, q:s.q});
-});
+let states = [
+  {t:0, x:0,  y:0,  q:0},
+  {t:1, x:80, y:0,  q:0},
+  {t:2, x:80, y:80, q:Math.PI/2},
+  {t:3, x:0,  y:80, q:Math.PI},
+  {t:4, x:0,  y:0,  q:-Math.PI/2}
+];
 let DRAW_DATA = {
   animation2:{
     draw_type: 'animation',
@@ -571,10 +545,10 @@ let t0 = performance.now();
   MAPFUNCS.draw();
   requestAnimationFrame(animStep);
 })();
-MAPFUNCS.centerMapWithDimensions(85,455,150,350)
-// Only 6 samples of the same path used in the other animation examples, so
-// motion between waypoints is linear (visibly less smooth). Unlike arc_path
-// and spline, "states" doesn't draw a background path line.
+MAPFUNCS.centerMapWithDimensions(40,40,150,150)
+// Only 5 waypoints trace a square loop; motion between them is linear
+// (visibly less smooth than arc_path/spline). Unlike those, "states" doesn't
+// draw a background path line.
 <\/script>`
 },
 {
@@ -583,25 +557,15 @@ MAPFUNCS.centerMapWithDimensions(85,455,150,350)
   code:
 `<script type="module">
 import { setup_generic_map } from '__ADDR__/js/generic_map.js';
-import * as ARCS from '__ADDR__/js/arcs.js';
 
 const MAPDIV = document.querySelector('#mapdiv');
 const ANIM_PERIOD = 10;
-const ARC_PATH = ARCS.make_arc_path(0, 300, 0, [
-  {curvature:0.02, length: 25*Math.PI},
-  {curvature:0, length: 80},
-  {curvature:0.02, length: 25*Math.PI},
-  {curvature:-0.02, length: -25*Math.PI},
-  {curvature:0, length: -80}
-]);
-const LTOT = ARCS.arcs_length(ARC_PATH);
-let waypoints = [];
-// Only 5 samples here (not 6): a last sample with the same heading as the
-// second-to-last would need an infinite-radius arc between them.
-[0,0.2,0.4,0.6,0.8].forEach(prcnt => {
-  let s = ARCS.arcs_state(ARC_PATH, prcnt*LTOT);
-  waypoints.push({t:prcnt, x:s.x+90, y:s.y, q:s.q});
-});
+let waypoints = [
+  {t:0, x:0,   y:0,   q:0},
+  {t:1, x:80,  y:0,   q:0},
+  {t:2, x:120, y:60,  q:Math.PI/2},
+  {t:3, x:80,  y:120, q:Math.PI}
+];
 let DRAW_DATA = {
   animation3:{
     draw_type: 'animation',
@@ -622,7 +586,7 @@ let t0 = performance.now();
   MAPFUNCS.draw();
   requestAnimationFrame(animStep);
 })();
-MAPFUNCS.centerMapWithDimensions(115,455,150,350)
+MAPFUNCS.centerMapWithDimensions(60,60,200,200)
 // biarc_path waypoints carry a heading (q) at each point, unlike spline
 // below - the arc pair between consecutive points matches both endpoints'
 // headings exactly (computed once, then cached on first draw).
@@ -634,23 +598,15 @@ MAPFUNCS.centerMapWithDimensions(115,455,150,350)
   code:
 `<script type="module">
 import { setup_generic_map } from '__ADDR__/js/generic_map.js';
-import * as ARCS from '__ADDR__/js/arcs.js';
 
 const MAPDIV = document.querySelector('#mapdiv');
 const ANIM_PERIOD = 10;
-const ARC_PATH = ARCS.make_arc_path(0, 300, 0, [
-  {curvature:0.02, length: 25*Math.PI},
-  {curvature:0, length: 80},
-  {curvature:0.02, length: 25*Math.PI},
-  {curvature:-0.02, length: -25*Math.PI},
-  {curvature:0, length: -80}
-]);
-const LTOT = ARCS.arcs_length(ARC_PATH);
-let waypoints = [];
-[0,0.2,0.4,0.6,0.8].forEach(prcnt => {
-  let s = ARCS.arcs_state(ARC_PATH, prcnt*LTOT);
-  waypoints.push({t:prcnt, x:s.x+90, y:s.y}); // spline_state only needs x,y (heading comes from the curve's slope)
-});
+let waypoints = [
+  {t:0, x:0,   y:0},
+  {t:1, x:80,  y:0},
+  {t:2, x:120, y:60},
+  {t:3, x:80,  y:120}
+];
 let DRAW_DATA = {
   animation4:{
     draw_type: 'animation',
@@ -671,7 +627,7 @@ let t0 = performance.now();
   MAPFUNCS.draw();
   requestAnimationFrame(animStep);
 })();
-MAPFUNCS.centerMapWithDimensions(115,455,150,350)
+MAPFUNCS.centerMapWithDimensions(60,60,200,200)
 // Compare against "Animation - biarc_path" (same waypoints): the spline's
 // heading is inferred from the curve's slope rather than specified per-point.
 <\/script>`
@@ -679,45 +635,145 @@ MAPFUNCS.centerMapWithDimensions(115,455,150,350)
 {
   name: 'Animation - vydisp',
   description: 'setup_init_vydisp() drives the animation for you, with a built-in play/pause/restart toolbar',
-  code:
+  full_code:
 `<script type="module">
-import * as ARCS from '__ADDR__/js/arcs.js';
-import { setup_init_vydisp } from '__ADDR__/esbuild/vydisp.js';
+import { setup_init_vydisp } from "__ADDR__/esbuild/vydisp.js";
 
-const ANIM_PERIOD = 10; // seconds per loop
-const ARC_PATH = ARCS.make_arc_path(0, 300, 0, [
-  {curvature:0.02, length: 25*Math.PI},
-  {curvature:0, length: 80},
-  {curvature:0.02, length: 25*Math.PI},
-  {curvature:-0.02, length: -25*Math.PI},
-  {curvature:0, length: -80}
-]);
-const LTOT = ARCS.arcs_length(ARC_PATH);
-
+// Create VYD (include DRAWDATA and MAX_TIME). The bot object follows
+// the "animation" draw_type format: the "items" are drawn following the "spline"
+// Setup some knots in a spline (use vyjs/js/splines.js format)
+// Set the MAX_TIME to match the time at the last knot
 const VYD = {
-  MAX_TIME: ANIM_PERIOD,
+  MAX_TIME: 7,
   DRAWDATA: {
-    animation: {
+    measuring_tool:1,
+    bot: {
       draw_type: 'animation',
-      independent_variable_scale: LTOT/ANIM_PERIOD,
-      arc_path: ARC_PATH,
-      draw_path: {stroke:'steelblue', stroke_width:1},
+      independent_variable_scale:1,
+      spline:[
+        {t:0, x:0, y:0},
+        {t:3, x:1, y:1},
+        {t:6, x:2, y:-1},
+        {t:7, x:3, y:0},
+      ],
+      draw_path:{stroke: 'black', stroke_width:1},
       items: [
-        {draw_type:'circle', x:0, y:0, radius:8, fill:'steelblue', stroke:'navy', stroke_width:1},
-        {draw_type:'circle', x:12, y:0, radius:4, fill:'red'}
+        {
+          draw_type:'circle',
+          x:0,
+          y:0,
+          radius:0.1,
+          fill:'steelblue',
+          stroke:'black',
+          stroke_width:0.02
+        },
+        {
+          draw_type:'circle',
+          x:0.15,
+          y:0,
+          radius:0.05,
+          fill:'black'
+        }
       ]
     }
   }
+}
+
+// Setup the path
+setup_init_vydisp(VYD);
+
+// Center the map at a point that puts the path in the center of the window
+VYD.MAPFUNCS.centerMapWithDimensions(1.5, 0, 6, 6); //xcenter, ycenter, width, height
+
+<\/script>`
+},
+{
+  name: 'Animation - vydisp + plot',
+  description: 'the example itself adds a flex sibling of #map1 for a live Plotly chart',
+  full_code:
+`<script type="module">
+import { setup_init_vydisp } from "__ADDR__/esbuild/vydisp.js";
+import "https://cdn.jsdelivr.net/npm/plotly.js-dist-min@2/plotly.min.js";
+
+// Same bot/spline path as "Animation - vydisp". vydisp.js's #content is a
+// plain flex column (display:flex; flex-direction:column) holding just
+// #map1 (flex:1 1 0) -- so a second flex child dropped in below it splits
+// the window with the map instead of needing vydisp.js itself to know
+// about plots.
+const VYD = {
+  MAX_TIME: 7,
+  DRAWDATA: {
+    measuring_tool:1,
+    bot: {
+      draw_type: 'animation',
+      independent_variable_scale:1,
+      spline:[
+        {t:0, x:0, y:0},
+        {t:3, x:1, y:1},
+        {t:6, x:2, y:-1},
+        {t:7, x:3, y:0},
+      ],
+      draw_path:{stroke: 'black', stroke_width:1},
+      items: [
+        {
+          draw_type:'circle',
+          x:0,
+          y:0,
+          radius:0.1,
+          fill:'steelblue',
+          stroke:'black',
+          stroke_width:0.02
+        },
+        {
+          draw_type:'circle',
+          x:0.15,
+          y:0,
+          radius:0.05,
+          fill:'black'
+        }
+      ]
+    }
+  }
+}
+
+const PLOT_LAYOUT = {
+  margin:{t:20,r:10,b:30,l:40},
+  xaxis:{title:'time (s)', range:[0,VYD.MAX_TIME]},
+  yaxis:{title:'position'}
+};
+const PLOT_TRACES = () => [
+  {x:[], y:[], mode:'lines+markers', name:'x'},
+  {x:[], y:[], mode:'lines+markers', name:'y'}
+];
+
+// Override the default step() to also append the bot's current x,y to the chart
+VYD.step = () => {
+  const DT = 0.05;
+  let not_done = VYD.check_time(VYD.MAX_TIME, DT);
+  VYD.DRAWDATA.__independent_variable__ = VYD.TIME;
+  if (VYD.TIMEBTN) VYD.TIMEBTN.innerText = \`\${VYD.TIME.toFixed(4)}\`;
+  VYD.MAPFUNCS.draw();
+  let s = VYD.DRAWDATA.bot.__current__ || {x0:0, y0:0, q0:0};
+  Plotly.extendTraces(PLOTDIV, {x:[[VYD.TIME],[VYD.TIME]], y:[[s.x0],[s.y0]]}, [0,1]);
+  return not_done;
+};
+VYD.restart = () => {
+  VYD.TIME = 0;
+  Plotly.react(PLOTDIV, PLOT_TRACES(), PLOT_LAYOUT);
 };
 
 setup_init_vydisp(VYD);
-VYD.MAPFUNCS.centerMapWithDimensions(25,455,150,350)
-// setup_init_vydisp() builds a full play/pause/restart/follow toolbar and
-// drives DRAWDATA.__independent_variable__ from VYD.TIME itself (via its
-// default step()/check_time()) -- no manual requestAnimationFrame loop
-// needed, unlike the other animation examples. It also builds its own map
-// div (VYD.MAPFUNCS), so this example doesn't touch #mapdiv at all. Click
-// the play button (top-left toolbar) to run it; scroll+shift changes speed.
+
+// Add the plot's div as a second flex child of #content, below #map1.
+const CONTENT = document.querySelector('#content');
+const PLOTDIV = document.createElement('div');
+PLOTDIV.id = 'plot1';
+PLOTDIV.style.cssText = 'flex:1 1 0; min-height:0; min-width:0;';
+CONTENT.appendChild(PLOTDIV);
+
+VYD.MAPFUNCS.resize();
+Plotly.newPlot(PLOTDIV, PLOT_TRACES(), PLOT_LAYOUT);
+VYD.MAPFUNCS.centerMapWithDimensions(1.5, 0, 3, 3);
 <\/script>`
 },
 {
@@ -811,7 +867,8 @@ DEFFORM.reload({
   name: 'Export',
   description: 'MAPFUNCS.export(fname) downloads the current map as a standalone HTML file',
   code:
-`<script type="module">
+`<button class="btn btn-sm btn-dark export" style="position:absolute; top:0; right:0; margin:4px;">↓ export.html</button>
+<script type="module">
 import { setup_generic_map } from '__ADDR__/js/generic_map.js';
 
 const MAPDIV = document.querySelector('#mapdiv');
@@ -825,30 +882,23 @@ MAPFUNCS.centerMapWithDimensions(0,0,200,200)
 // current DRAW_DATA/DRAW_EXT into a standalone HTML file (referencing
 // generic_map.js from jsDelivr) and triggers a browser download of it.
 // Build whatever trigger you want around it yourself, e.g. a button:
-let btn = document.createElement('button');
-btn.className = 'btn btn-sm btn-dark';
-btn.style.cssText = 'position:absolute; top:0; right:0; margin:4px;';
-btn.textContent = '↓ export.html';
-btn.addEventListener('click', () => {
+document.querySelector('button.export').addEventListener('click', () => {
   try {
     MAPFUNCS.export('export.html');
   } catch (err) {
     console.error(err);
   }
 });
-document.body.appendChild(btn);
 <\/script>`
 }
 ];
 
-function buildFrameDoc(code) {
-  let addr = (TEST_SERVER) ? '..' : `https://cdn.jsdelivr.net/gh/vytools/vyjs@v6.0.0`;
-  code = code.split('__ADDR__').join(addr);
-  return `<!doctype html>
+function buildFrameDoc(ex,addr) {
+  let x = `<!doctype html>
 <html>
 <head>
 <meta charset="utf-8">
-<link rel="stylesheet" href="${addr}/css/definition_form.css">
+<link rel="stylesheet" href="__ADDR__/css/definition_form.css">
 <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.0.2/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-EVSTQN3/azprG1Anm3QDgpJLIm9Nao0Yz1ztcQTwFspd3yD65VohhpuuCOmLASjC" crossorigin="anonymous">
 <style>
   html, body { margin:0; padding:0; width:100%; height:100%; overflow:hidden; }
@@ -857,18 +907,21 @@ function buildFrameDoc(code) {
 </head>
 <body>
 <div id="mapdiv"></div>
-${code}
+${ex.code}
 </body>
 </html>`;
+if (ex.full_code) x = ex.full_code;
+return x.split('__ADDR__').join(addr);
 }
 
+const VERSION = `https://cdn.jsdelivr.net/gh/vytools/vyjs@v${vyjsver}`;
 function runFrame(code) {
-  FRAME.srcdoc = code;
+  FRAME.srcdoc = code.split(VERSION).join('.');
 }
 
 function selectExample(idx) {
   selectedIdx = idx;
-  CODE.setValue(buildFrameDoc(EXAMPLES[idx].code), -1);
+  CODE.setValue(buildFrameDoc(EXAMPLES[idx],VERSION), -1);
   clearTimeout(debounceTimer);
   LIST.querySelectorAll('a').forEach((a,ii) => a.classList.toggle('active', ii === idx));
   runFrame(CODE.getValue());
@@ -904,10 +957,6 @@ window.codeResize = function() {
   CODE.resize();
 }
 
-// Vanilla-JS replacement for flex.js's drag-resize behavior: each ".resizer"
-// grows/shrinks its previous/next sibling panel by adjusting flex-grow in
-// proportion to their current pixel widths, then re-runs the same resize
-// hooks (codeResize/resizex) the old onresize="..." attributes used to call.
 document.querySelectorAll('.resizer').forEach((resizer) => {
   resizer.addEventListener('mousedown', (md) => {
     const prev = resizer.previousElementSibling;

@@ -1,5 +1,5 @@
 import { initialize_map } from "./zoom_pan_canvas.js";
-import { version } from "./version.js";
+import { vyjsver } from "./version.js";
 import * as ARCS from "./arcs.js"
 import * as SPLINES from "./splines.js"
 
@@ -142,7 +142,8 @@ let draw_animation = (thing, ctx, invar) => {
       if (iv-iv0 <= div || ii+1 == arcs.length) {
         const frac = (iv-iv0) / div;
         let s = ARCS.arc_state(arc, frac * arc.L);
-        return {x0:s.x, y0:s.y, q0:s.q};
+        thing.__current__ = {x0:s.x, y0:s.y, q0:s.q};
+        return thing.__current__;
       }
       iv0 += div;
     }
@@ -158,7 +159,8 @@ let draw_animation = (thing, ctx, invar) => {
     }
 
     const s = SPLINES.spline_state(thing.spline_knots, iv);
-    return {x0:s.x, y0:s.y, q0:s.q};
+    thing.__current__ = {x0:s.x, y0:s.y, q0:s.q};
+    return thing.__current__;
   } else if (thing.hasOwnProperty('states')) {
     let t0 = 0;
     for (let ii = 1; ii < thing.states.length; ii++) {
@@ -169,15 +171,17 @@ let draw_animation = (thing, ctx, invar) => {
         const x0 = thing.states[ii-1].x;
         const y0 = thing.states[ii-1].y;
         const q0 = thing.states[ii-1].q;
-        return {
+        thing.__current__ = {
           x0:x0+frac*(thing.states[ii].x-x0),
           y0:y0+frac*(thing.states[ii].y-y0),
           q0:q0+frac*ARCS.pimod(thing.states[ii].q-q0),
         };
+        return thing.__current__;
       }
     }
   }
-  return {x0:0, y0:0, q0:0};
+  thing.__current__ = {x0:0, y0:0, q0:0};
+  return thing.__current__;
 }
 
 let draw_text = function(txt, ctx) {
@@ -260,7 +264,7 @@ let draw = function(ctx, data, togname) {
   ctx.clear_all();
   ctx.scale(1,-1);
   ctx.draw_grid();
-  ctx.draw_mouse('v' + version);
+  ctx.draw_mouse('v' + vyjsver);
   let toggleable = ctx.canvas.parentElement.querySelector('div.toggleable');
   while (toggleable.firstChild) toggleable.removeChild(toggleable.lastChild);
   let iv = data.__independent_variable__;
@@ -355,7 +359,7 @@ export class GenericMap {
       } else if (this.CTX && this.CTX.handleMouseMove(e)) {
         draw(this.CTX, this._data, null);
       } else if (this.CTX) {
-        this.CTX.draw_mouse('v' + version);
+        this.CTX.draw_mouse('v' + vyjsver);
       }
     }, false);
     this.CANVAS.addEventListener('mouseup',(e) => {
@@ -430,7 +434,7 @@ export class GenericMap {
 <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.0.2/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-EVSTQN3/azprG1Anm3QDgpJLIm9Nao0Yz1ztcQTwFspd3yD65VohhpuuCOmLASjC" crossorigin="anonymous">
 <style>.full {position:absolute;top:0px;left:0px;width:100%; height:100%;overflow:none}</style></head>
 <body class="full"><div id="map" class="full"></div>
-<script type="module">import { setup_generic_map } from "https://cdn.jsdelivr.net/gh/vytools/vyjs@v${version}/js/generic_map.js";
+<script type="module">import { setup_generic_map } from "https://cdn.jsdelivr.net/gh/vytools/vyjs@v${vyjsver}/js/generic_map.js";
 let DRAW_EXT = ${JSON.stringify(this._renderFuncs, (k, v) => { return (typeof v === "function") ? v.toString() : v;}, 2)};
 for (const key in DRAW_EXT) {
   if (typeof DRAW_EXT[key] === "string" && DRAW_EXT[key].startsWith("function")) {
