@@ -266,7 +266,11 @@ export function setup_vydisp(VYD, DF = null) {
     } else if (b.classList.contains('playpause')) {
       toggle_play_pause();
     } else if (b.classList.contains('restart')) {
+      VYD.stop_playback();
       VYD.restart();
+      VYD.DRAWDATA.__independent_variable__ = VYD.TIME;
+      if (VYD.TIMEBTN) VYD.TIMEBTN.innerText = `${(VYD.TIME).toFixed(4)}`;
+      VYD.MAPFUNCS.draw();
     } else if (b.classList.contains('help')) {
       HELPDIV.style.display = (HELPDIV.style.display == '') ? 'none' : '';
       ev.target.classList.toggle('btn-dark');
