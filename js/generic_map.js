@@ -207,7 +207,7 @@ let draw_text = function(txt, ctx) {
   ctx.scale(1,-1);
 }
 
-let draw_thing = function(thing, ctx, toggleable, togname, invar=0) {
+let draw_thing = function(thing, ctx, toggleable, togname, center, frame, invar=0) {
   if (!ctx) return;
   try {
     if (thing && typeof(thing) == "object") {
@@ -238,7 +238,28 @@ let draw_thing = function(thing, ctx, toggleable, togname, invar=0) {
           ctx.save();
           ctx.translate(rslts.x0, rslts.y0);
           ctx.rotate(rslts.q0);
-          draw_thing(thing.items, ctx, toggleable, togname, invar);
+          // frame is the accumulated world transform of the parent frame this
+          // animation's own (rslts.x0, rslts.y0, rslts.q0) is defined in --
+          // compose it in so childFrame is this animation's world transform,
+          // correct however deep it is nested inside other animations' items.
+          let fcq = Math.cos(frame.q), fsq = Math.sin(frame.q);
+          let childFrame = {
+            x: frame.x + rslts.x0*fcq - rslts.y0*fsq,
+            y: frame.y + rslts.x0*fsq + rslts.y0*fcq,
+            q: frame.q + rslts.q0
+          };
+          if (thing.follow) {
+            let cq = Math.cos(childFrame.q), sq = Math.sin(childFrame.q);
+            center.x = childFrame.x + thing.follow.x*cq - thing.follow.y*sq;
+            center.y = childFrame.y + thing.follow.x*sq + thing.follow.y*cq;
+            center.center = true;
+            if (thing.follow.width) {
+              center.width = thing.follow.width;
+              center.height = thing.follow.height;
+              center.with_dimensions = true;
+            }
+          }
+          draw_thing(thing.items, ctx, toggleable, togname, center, childFrame, invar);
           ctx.restore();
         } else if (ctx.RenderFuncs && ctx.RenderFuncs.hasOwnProperty(thing.draw_type)) {
           ctx.RenderFuncs[thing.draw_type](thing,ctx);
@@ -246,11 +267,11 @@ let draw_thing = function(thing, ctx, toggleable, togname, invar=0) {
       } else {
         for (const [key, val] of Object.entries(thing)) {
           if (Array.isArray(val)) {
-            val.forEach(v => draw_thing(v, ctx, toggleable, togname, invar));
+            val.forEach(v => draw_thing(v, ctx, toggleable, togname, center, frame, invar));
           } else {
-            draw_thing(val, ctx, toggleable, togname, invar);
+            draw_thing(val, ctx, toggleable, togname, center, frame, invar);
           }
-        }  
+        }
       }
     }
   } catch(err) {
@@ -268,8 +289,14 @@ let draw = function(ctx, data, togname) {
   let toggleable = ctx.canvas.parentElement.querySelector('div.toggleable');
   while (toggleable.firstChild) toggleable.removeChild(toggleable.lastChild);
   let iv = data.__independent_variable__;
-  draw_thing(data, ctx, toggleable, togname, iv);
+  let center = {x:0, y:0, width:0, height:0, center:false, with_dimensions:false};
+  draw_thing(data, ctx, toggleable, togname, center, {x:0, y:0, q:0}, iv);
   ctx.restore();
+  if (center.with_dimensions) {
+    center_map_with_dimensions(ctx, center.x, center.y, center.width, center.height);
+  } else if (center.center) {
+    center_map(ctx, center.x, center.y);
+  }
 }
 
 let center_map = function(ctx, xc, yc) { // x, y, map coordinates of center and desired width/height

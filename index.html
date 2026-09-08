@@ -552,7 +552,7 @@ MAPFUNCS.centerMapWithDimensions(40,40,150,150)
 <\/script>`
 },
 {
-  name: 'Animation - biarc_path',
+  name: 'Animation - biarc_path + zoomable follow',
   description: 'waypoints connected by smooth tangent arc pairs (biarcs)',
   code:
 `<script type="module">
@@ -571,6 +571,7 @@ let DRAW_DATA = {
     draw_type: 'animation',
     independent_variable_scale: waypoints.slice(-1)[0].t/ANIM_PERIOD,
     biarc_path: waypoints,
+    follow: {x:0, y:0},
     draw_path: {stroke:'steelblue', stroke_width:1},
     items: [
       {draw_type:'circle', x:0, y:0, radius:8, fill:'steelblue', stroke:'navy', stroke_width:1},
@@ -593,8 +594,8 @@ MAPFUNCS.centerMapWithDimensions(60,60,200,200)
 <\/script>`
 },
 {
-  name: 'Animation - spline',
-  description: 'the same waypoints, interpolated as a natural cubic spline instead',
+  name: 'Animation - spline + fixed follow',
+  description: 'the same waypoints, interpolated as a natural cubic spline instead and with the map following',
   code:
 `<script type="module">
 import { setup_generic_map } from '__ADDR__/js/generic_map.js';
@@ -611,6 +612,7 @@ let DRAW_DATA = {
   animation4:{
     draw_type: 'animation',
     independent_variable_scale: waypoints.slice(-1)[0].t/ANIM_PERIOD,
+    follow: {x:0, y:0, width:100, height:100},
     spline: waypoints,
     draw_path: {stroke:'steelblue', stroke_width:1},
     items: [
@@ -630,6 +632,66 @@ let t0 = performance.now();
 MAPFUNCS.centerMapWithDimensions(60,60,200,200)
 // Compare against "Animation - biarc_path" (same waypoints): the spline's
 // heading is inferred from the curve's slope rather than specified per-point.
+<\/script>`
+},
+{
+  name: 'Animation - nested (orbiting circles)',
+  description: "an animation nested inside another animation's items -- a moon orbiting an orbiting planet",
+  code:
+`<script type="module">
+import { setup_generic_map } from '__ADDR__/js/generic_map.js';
+import * as ARCS from '__ADDR__/js/arcs.js';
+
+const MAPDIV = document.querySelector('#mapdiv');
+const PLANET_PERIOD = 12; // seconds per orbit around the sun
+const MOON_PERIOD = 3;    // seconds per orbit around the planet (divides evenly into PLANET_PERIOD)
+const PLANET_ORBIT = ARCS.make_arc_path(0, -100, 0, [
+  {curvature: 1/100, length: 2*Math.PI*100} // radius-100 circle around the sun
+]);
+const MOON_ORBIT = ARCS.make_arc_path(0, -25, 0, [
+  {curvature: 1/25, length: 2*Math.PI*25}   // radius-25 circle around the planet
+]);
+let DRAW_DATA = {
+  sun: {draw_type:'circle', x:0, y:0, radius:14, fill:'gold', stroke:'darkorange', stroke_width:2},
+  planet:{
+    draw_type: 'animation',
+    independent_variable_scale: ARCS.arcs_length(PLANET_ORBIT)/PLANET_PERIOD,
+    arc_path: PLANET_ORBIT,
+    draw_path: {stroke:'rgba(0,0,0,0.15)', stroke_width:1},
+    items: [
+      {draw_type:'circle', x:0, y:0, radius:8, fill:'steelblue', stroke:'navy', stroke_width:1},
+      {
+        // Nested animation: its arc_path/items are drawn in the planet's
+        // local frame, which is already translated+rotated by the planet's
+        // own position/heading -- so the moon orbits the planet and gets
+        // carried around the sun along with it.
+        draw_type: 'animation',
+        independent_variable_scale: ARCS.arcs_length(MOON_ORBIT)/MOON_PERIOD,
+        arc_path: MOON_ORBIT,
+        // follow on a nested animation composes through every ancestor
+        // animation's transform, so the map centers on the moon's true
+        // world position as it's carried around by the planet.
+        follow: {x:0, y:0},
+        draw_path: {stroke:'rgba(0,0,0,0.15)', stroke_width:1},
+        items: [
+          {draw_type:'circle', x:0, y:0, radius:3, fill:'silver', stroke:'dimgray', stroke_width:1}
+        ]
+      }
+    ]
+  }
+};
+let MAPFUNCS = setup_generic_map(MAPDIV, DRAW_DATA, {});
+
+let t0 = performance.now();
+(function animStep() {
+  DRAW_DATA.__independent_variable__ = ((performance.now() - t0) / 1000) % PLANET_PERIOD;
+  MAPFUNCS.draw();
+  requestAnimationFrame(animStep);
+})();
+MAPFUNCS.centerMapWithDimensions(0,0,300,300)
+// Because the planet's own heading rotates as it goes around its circular
+// orbit, the moon's local x/y axes rotate along with it -- so the moon
+// traces an epicycle-like loop rather than a plain circle around the planet.
 <\/script>`
 },
 {
