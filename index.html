@@ -347,12 +347,13 @@ let DRAW_DATA = {
 let DRAW_EXT = {
   special_circle:function(obj, ctx) {
     let trnsfrm = ctx.get_transform();
-    ctx.lineWidth = 1/trnsfrm.a;
+    let scl = Math.hypot(trnsfrm.a, trnsfrm.b);
+    ctx.lineWidth = 1/scl;
     ctx.strokeStyle = 'black';
     ctx.beginPath();
-    ctx.arc(obj.xx, obj.yy, 10/trnsfrm.a, 0, 2 * Math.PI, false);
+    ctx.arc(obj.xx, obj.yy, 10/scl, 0, 2 * Math.PI, false);
     ctx.stroke();
-    let fontsize = Math.max(1, Math.floor(12/trnsfrm.a));
+    let fontsize = Math.max(1, Math.floor(12/scl));
     ctx.font = fontsize + 'px Courier';
     ctx.textAlign = 'left';
     ctx.fillStyle = 'black';
@@ -362,7 +363,7 @@ let DRAW_EXT = {
   },
   rainbow:function(obj, ctx) {
     let trnsfrm = ctx.get_transform();
-    let r = obj.radius/trnsfrm.a;
+    let r = obj.radius/Math.hypot(trnsfrm.a, trnsfrm.b);
     let n = (obj.points) ? obj.points.length : 0;
     for (var ii = 0; ii < n; ii++) {
       let p = obj.points[ii];

@@ -7,6 +7,10 @@ export function pi2mod(theta) {
   return theta - TWOPI * Math.floor(theta / TWOPI);
 }
 
+let transform_scale = function(trnsfrm) {
+  return Math.hypot(trnsfrm.a, trnsfrm.b);
+}
+
 export function pimod(q) {
   let qm = q % TWOPI;
   if (qm >  Math.PI) qm -= TWOPI;
@@ -162,7 +166,7 @@ export function biarc(xyq0, xyq1) {
 
 export const arc_path_draw = function(obj,ctx) {
   let trnsfrm = ctx.get_transform();
-  let radius = obj.node_pix/trnsfrm.a;
+  let radius = obj.node_pix/transform_scale(trnsfrm);
   ctx.fillStyle = obj.color;
   ctx.strokeStyle = obj.color;
   obj.xyq.forEach(xyq => {
@@ -269,12 +273,12 @@ export function mouse_move(MAPFUNCS, arcpath, e) {
 export function mouse_down(MAPFUNCS, arcpath, e) { 
   if (!arcpath || !MAPFUNCS || !MAPFUNCS.CTX) return;
   let P = MAPFUNCS.eventToPosition(e);
-  let trnsfrm = MAPFUNCS.CTX.get_transform();
+  let t = transform_scale(MAPFUNCS.CTX.get_transform());
   let insdel = e.buttons == 1 && e.detail == 2;
   for (let ii = 0; ii < arcpath.nodes.length; ii++) {
     let N = arcpath.nodes[ii];
-    let x = N.xyq.x + HPIXD*arcpath.node_pix*Math.cos(N.xyq.q)/trnsfrm.a;
-    let y = N.xyq.y + HPIXD*arcpath.node_pix*Math.sin(N.xyq.q)/trnsfrm.a;
+    let x = N.xyq.x + HPIXD*arcpath.node_pix*Math.cos(N.xyq.q)/t;
+    let y = N.xyq.y + HPIXD*arcpath.node_pix*Math.sin(N.xyq.q)/t;
     if (screendist(MAPFUNCS, {x:N.xyq.x, y:N.xyq.y}, P) <= arcpath.node_pix) {
       if (insdel) { // Delete
         arcpath.nodes.splice(ii, 1);
