@@ -382,6 +382,55 @@ MAPFUNCS.centerMapWithDimensions(10,0,30,30)
 <\/script>`
 },
 {
+  name: 'draw_items (reusable draw lists)',
+  description: 'draw_items() replays an ordinary polygon/circle list through a custom draw_type\'s own transform',
+  code:
+`<script type="module">
+import { setup_generic_map, draw_items } from '__ADDR__/js/generic_map.js';
+
+const MAPDIV = document.querySelector('#mapdiv');
+
+// An ordinary vydisp-style draw list, authored once in a local frame (pivots
+// around x=0,y=0, faces +x) -- the same shape a GenericMap could render
+// directly via DRAW_DATA, or that a custom draw_type can hand to draw_items()
+// after positioning it with its own ctx transform (see vy_challenges/vBots'
+// web.vyt.html, which uses exactly this to draw each student's robot "skin"
+// at that bot's world pose, with its own size-clamping logic on top).
+const ARROW_SKIN = [
+  {draw_type:'polygon', points:[{x:10,y:0},{x:-6,y:6},{x:-6,y:-6}], fill:'steelblue', stroke:'navy', stroke_width:1, scale_with_zoom:true},
+  {draw_type:'circle', x:-3, y:0, radius:2, fill:'black'}
+];
+
+let DRAW_DATA = {
+  arena: {draw_type:'circle', x:0, y:0, radius:100, stroke:'black', stroke_width:1},
+  bots: [
+    {draw_type:'skinned_bot', x:-50, y:30, q:0.3, scale:1},
+    {draw_type:'skinned_bot', x:20, y:-40, q:2.4, scale:2},
+    {draw_type:'skinned_bot', x:60, y:50, q:-1.0, scale:0.6}
+  ]
+};
+let DRAW_EXT = {
+  // A custom draw_type handler manages whatever transform its own domain
+  // needs (here: position, heading, and a per-instance scale) and then calls
+  // draw_items() to render an ordinary draw list through it -- the exact same
+  // draw_polygon/draw_circle code GenericMap uses everywhere else, so there's
+  // no second copy of that rendering logic living in the custom handler.
+  skinned_bot: function(obj, ctx) {
+    ctx.save();
+    ctx.translate(obj.x, obj.y);
+    ctx.rotate(obj.q);
+    ctx.scale(obj.scale, obj.scale);
+    draw_items(ARROW_SKIN, ctx);
+    ctx.restore();
+  }
+};
+let MAPFUNCS = setup_generic_map(MAPDIV, DRAW_DATA, DRAW_EXT);
+MAPFUNCS.centerMapWithDimensions(0,0,260,260)
+// Three "bots" share one ARROW_SKIN draw list, each positioned/rotated/scaled
+// independently by skinned_bot's own transform before draw_items() runs it.
+<\/script>`
+},
+{
   name: 'Interactive arc path',
   description: 'ARCS.ArcPath - click and drag to reshape a path of arcs, plus ARCS.dubins()',
   code:

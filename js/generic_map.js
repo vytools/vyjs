@@ -279,6 +279,17 @@ let draw_thing = function(thing, ctx, toggleable, togname, center, frame, invar=
   }
 }
 
+// Recursively draws an arbitrary vydisp-style draw list/tree (polygon, circle,
+// arc, spline, text, image, animation, nested arrays/objects, ...) straight
+// onto ctx at whatever transform is already set up -- for callers that want
+// the same item rendering GenericMap uses, but inline at a caller-managed
+// pose (e.g. drawing a small pre-authored draw list at a moving object's
+// position) rather than through a full GenericMap/DRAWDATA render pass.
+export function draw_items(items, ctx, invar = 0) {
+  const center = {x:0, y:0, width:0, height:0, center:false, with_dimensions:false};
+  draw_thing(items, ctx, null, null, center, {x:0, y:0, q:0}, invar);
+}
+
 let draw = function(ctx, data, togname) {
   if (!ctx) return;
   ctx.save();

@@ -1,1 +1,1 @@
-export const vyjsver='6.0.5';
+export const vyjsver='6.0.6';
