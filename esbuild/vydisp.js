@@ -107,7 +107,10 @@ export function init_vydisp(opts = {}) {
         </ul>
       </div>
       <div id="configure" class="sbc" style="display:none;">
-        <button class="btn w-100 p-0 mb-1 btn-sm btn-dark saveconfig" type="button" title="Click to save configuration">Save Config</button>
+        <div class="d-flex flex-nowrap gap-1 mb-1">
+          <button class="btn pt-0 pb-0 btn-sm btn-dark saveconfig" type="button" title="Click to save configuration">Save</button>
+          <button class="btn pt-0 pb-0 btn-sm btn-dark rvrtconfig" type="button" title="Click to save to default challenge configuration">Revert</button>
+        </div>
         <div id="params" style="flex:1 1 auto;"></div>
       </div>
       <div class="scores sbc"></div>
@@ -187,6 +190,8 @@ export function setup_vydisp(VYD, DF = null) {
   const PLAYICON = document.querySelector('svg.bi-play');
   const PAUSICON = document.querySelector('svg.bi-pause');
   const SAVEBTN = document.querySelector('button.saveconfig');
+  const RVRTBTN = document.querySelector('button.rvrtconfig');
+  let DEFAULT_CONFIG = null; // config hardcoded in the vyt.html, captured before any tool_data/vycnfig loads
 
   const switch_direction = () => {
       VYD.PLAYBACK_SPEED_GEAR = -VYD.PLAYBACK_SPEED_GEAR;
@@ -318,10 +323,10 @@ export function setup_vydisp(VYD, DF = null) {
     reader.readAsText(e.target.files[0]);
     LOADINPUT.value = '';
   });
-  SAVEBTN.addEventListener('click',(e) => {
+
+  const save_vycnfig = function() {
     if (VYD.defobj && VYD.defobj.object && VYD.defobj.object.config) {
       let c = VYD.defobj.object.config;
-      console.log('VYD.IS_VS_CODE',VYD.IS_VS_CODE,'VYD.IS_ONLINE',VYD.IS_ONLINE)
       if (VYD.IS_ONLINE) {
         let data = {'pblc.share_data.config':c};
         if (c.max_solve_time) {
@@ -336,6 +341,26 @@ export function setup_vydisp(VYD, DF = null) {
         if (DF) DF.download(filename,c);
       }
     }
+  }
+  
+  const revert_to = function(config) {
+    if (!config || !VYD.defobj?.reload) return;
+    VYD.defobj.reload({config:JSON.parse(JSON.stringify(config))});
+    save_vycnfig();
+  }
+
+  RVRTBTN.addEventListener('click',(e) => { 
+    if (VYD.IS_ONLINE) {
+      revert_to(DEFAULT_CONFIG);
+    } else if (VYD.IS_VS_CODE) {
+      // vylink answers with the challenge's config from .vytool.json (topic 'default_vycnfig')
+      window.parent.postMessage({topic:'request_default_vycnfig'},'*');
+    } else {
+      VYD.show_alert('To revert, copy the "vycnfig" field of .vytool.json (in the challenge folder) into vycnfig.json.', 15);
+    }
+  });
+  SAVEBTN.addEventListener('click',(e) => {
+    save_vycnfig();
   });
 
   const set_vytools_data = function(data) {
@@ -345,8 +370,9 @@ export function setup_vydisp(VYD, DF = null) {
       if (data.hasOwnProperty('is_vs_code')) VYD.IS_VS_CODE = data.is_vs_code;
       document.querySelector('button.loadresults').style.display = (VYD.IS_ONLINE) ? 'none' : '';
       VYD.LEVL = data.levl;
-      if (VYD.IS_ONLINE && VYD.LEVL == 0) {
-        document.querySelectorAll('button.vycfg').forEach(el => el.style.display = 'none');
+      const hide = VYD.IS_ONLINE && VYD.LEVL == 0;
+      document.querySelectorAll('button.vycfg').forEach(el => el.style.display = (hide)?'none':'');
+      if (hide) {
         CONFIGDIV.style.display = 'none';
       }
       if (data.vyrslts && data.vyrslts.length > 0 && data.vyrslts[0].hasOwnProperty('config')) {
@@ -364,10 +390,8 @@ export function setup_vydisp(VYD, DF = null) {
         }
         data.vycnfig = newconfig; // Overwrite
       }
-      if (data.vycnfig && VYD.defobj?.reload) VYD.defobj.reload({config:data.vycnfig});
-      if (data.vyrslts) {
-        VYD.set_vyrslts(data.vyrslts);
-      }
+      if (VYD.defobj?.reload) VYD.defobj.reload({config:data.vycnfig});
+      if (data.vyrslts) VYD.set_vyrslts(data.vyrslts);
     } catch(err) {
       VYD.show_alert('Problem loading data: '+err, 10);
     }
@@ -379,8 +403,17 @@ export function setup_vydisp(VYD, DF = null) {
       if (e.data.message) VYD.show_alert(e.data.message,8);
       if (e.source == window.parent && e.data.topic == 'tool_data' && e.data.data) {
         set_vytools_data(e.data.data);
+      } else if (e.source == window.parent && e.data.topic == 'default_vycnfig') {
+        if (!e.data.has_vytool) {
+          VYD.show_alert('Cannot revert: no .vytool.json found in the workspace folder. Open the downloaded challenge folder in VS Code.', 10);
+        } else if (e.data.data && typeof e.data.data === 'object') {
+          revert_to(e.data.data);
+        } else {
+          VYD.show_alert('.vytool.json has no default configuration, reverting to the defaults in this file.', 10);
+          revert_to(DEFAULT_CONFIG);
+        }
       } else {
-        console.log('window.addEventListener ignoring message: ', e.data);
+        console.log('** vydisp.js window.addEventListener ignoring message: ', e.data);
       }
     } catch(err) {
       VYD.show_alert(`Failed to interpret message: ${err}`,8);
@@ -429,6 +462,7 @@ export function setup_vydisp(VYD, DF = null) {
     try {
       let DEFFORM = DF.init(document.querySelector('#params'), VYD.defobj);
       VYD.defobj.reload = DEFFORM.reload;
+      if (VYD.defobj.object?.config) DEFAULT_CONFIG = JSON.parse(JSON.stringify(VYD.defobj.object.config));
     } catch (err) {
       let msg = `Failed to initialize definitions: ${err}`;
       VYD.show_alert(msg, 8);
