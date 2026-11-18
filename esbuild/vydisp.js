@@ -192,6 +192,7 @@ export function setup_vydisp(VYD, DF = null) {
   const SAVEBTN = document.querySelector('button.saveconfig');
   const RVRTBTN = document.querySelector('button.rvrtconfig');
   let DEFAULT_CONFIG = null; // config hardcoded in the vyt.html, captured before any tool_data/vycnfig loads
+  let CHALLENGE_DEFAULT = null; // online: the challenge's default config, sent with tool_data as vydflt
 
   const switch_direction = () => {
       VYD.PLAYBACK_SPEED_GEAR = -VYD.PLAYBACK_SPEED_GEAR;
@@ -351,7 +352,7 @@ export function setup_vydisp(VYD, DF = null) {
 
   RVRTBTN.addEventListener('click',(e) => { 
     if (VYD.IS_ONLINE) {
-      revert_to(DEFAULT_CONFIG);
+      revert_to(CHALLENGE_DEFAULT || DEFAULT_CONFIG);
     } else if (VYD.IS_VS_CODE) {
       // vylink answers with the challenge's config from .vytool.json (topic 'default_vycnfig')
       window.parent.postMessage({topic:'request_default_vycnfig'},'*');
@@ -370,6 +371,7 @@ export function setup_vydisp(VYD, DF = null) {
       if (data.hasOwnProperty('is_vs_code')) VYD.IS_VS_CODE = data.is_vs_code;
       document.querySelector('button.loadresults').style.display = (VYD.IS_ONLINE) ? 'none' : '';
       VYD.LEVL = data.levl;
+      if (data.vydflt && typeof data.vydflt === 'object') CHALLENGE_DEFAULT = data.vydflt;
       const hide = VYD.IS_ONLINE && VYD.LEVL == 0;
       document.querySelectorAll('button.vycfg').forEach(el => el.style.display = (hide)?'none':'');
       if (hide) {
