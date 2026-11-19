@@ -244,7 +244,15 @@ export function setup_vydisp(VYD, DF = null) {
     if (ev.shiftKey) {
       VYD.DRAWDATA.disable_map_events = true;
       let sgn = (VYD.PLAYBACK_SPEED_GEAR > 0) ? 1 : -1
-      VYD.PLAYBACK_SPEED_GEAR = sgn*Math.min(100, Math.max(0.001, sgn*VYD.PLAYBACK_SPEED_GEAR*((ev.deltaY > 0) ? 0.8 : 1.2)));
+      // Scale by how far the wheel moved, not per event: a touchpad sends many small
+      // events where a mouse sends one per notch. Shift+wheel is often reported as
+      // horizontal (deltaX), so fall back to it. One ~100px mouse notch ≈ ×1.25.
+      let d = ev.deltaY || ev.deltaX;
+      if (ev.deltaMode === 1) d *= 33;       // lines
+      else if (ev.deltaMode === 2) d *= 400; // pages
+      d = Math.max(-100, Math.min(100, d));
+      const factor = Math.exp(-d * Math.log(1.25) / 100);
+      VYD.PLAYBACK_SPEED_GEAR = sgn*Math.min(100, Math.max(0.001, sgn*VYD.PLAYBACK_SPEED_GEAR*factor));
       SPEEDBTN.innerText = 'speed: '+VYD.PLAYBACK_SPEED_GEAR.toFixed(3);
       SPEEDBTN.style.display = '';
       ev.stopPropagation();
