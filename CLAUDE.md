@@ -84,6 +84,8 @@ This repo is a collection of standalone ES module JavaScript files in `js/` — 
 - `restart()` — resets simulation state
 - `set_vyrslts(vyrslts)` — loads result data
 
+`ranked_scores({on_select, decimals=5, color, title})` (exported from `vydisp.js`) fills the sidebar's `div.scores` with a leaderboard for results files that hold many students' entries (the app's levl-1 Download Results file: one `vyrslts` entry per student with `alias` and `score`). Entries are ranked by score (ties share a rank, no score goes last) with the name and score hidden until the row is clicked; a click reveals `alias (score)` and calls `on_select(entry)`. A single entry is selected immediately and the box shows just its score. Call `.set(vyrslts)` from `set_vyrslts`; `.selected()` returns the entry last clicked. Used by landleveling.
+
 `vydisp.js` receives data from a parent frame via `window.postMessage` with topic `tool_data`. Sends to parent: `request_tool_data` on init, `save` (online config save), `save_vycnfig` (VS Code config save), `download_tool_data` (item download).
 
 ### Bundling pipeline

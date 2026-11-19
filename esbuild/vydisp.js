@@ -60,6 +60,11 @@ export function init_vydisp(opts = {}) {
     .bi-play, .bi-pause, .bi-rewind {width:24px; height:24px;}
     ul.scoredots {list-style-type:none;}
     ul.scoredots span {height:12px; width:12px; border-radius:50%; display:inline-block;}
+    ul.vyranks {list-style:none; padding:0; margin:0; min-width:180px;}
+    ul.vyranks li {cursor:pointer; padding:2px 6px; border-radius:4px; white-space:nowrap;}
+    ul.vyranks li:hover {background:rgba(128,128,128,0.15);}
+    ul.vyranks li.shown {outline:2px solid var(--vyranks-color, dodgerblue);}
+    ul.vyranks .hid {color:#999; letter-spacing:2px;}
     .sidebar {position:absolute; top:70px; left:40px; max-width:400px; max-height:calc(100vh - 90px);}
     .sidebar .sbc {border-radius:15px; padding:10px; margin:10px; background-color:rgba(255,255,255,0.9);}
   `);
@@ -149,6 +154,69 @@ export function init_vydisp(opts = {}) {
   if (!opts?.follow) {
     document.querySelector('button.follow').style.display = 'none';
   }
+}
+
+// Ranked score list in the sidebar's score box (div.scores), for a results file holding many
+// students' results: the levl-1 Download Results file has one vyrslts entry per student, each with
+// `alias` and `score`. Entries are ranked by score (ties share a rank, entries without a numeric
+// score go last) with the name and score hidden until the row is clicked; clicking a row reveals
+// `alias (score)` and calls on_select(entry), e.g. to draw that student's run. A single entry is
+// selected right away and the box just shows its score.
+//   const RANKS = ranked_scores({on_select: e => {...}, color: COLOR});
+//   RANKS.set(vyrslts);    // in VYD.set_vyrslts; returns the initially selected entry (or null)
+//   RANKS.selected();      // the entry last clicked
+export function ranked_scores({on_select = null, decimals = 5, color = null, title = 'Results'} = {}) {
+  const div = document.querySelector('div.scores');
+  if (color) div.style.setProperty('--vyranks-color', color);
+  let ranked = [];
+  let shown = null;
+  const revealed = new Set();
+  const has_score = e => typeof e?.score === 'number' && isFinite(e.score);
+  const fmt = e => has_score(e) ? e.score.toFixed(decimals) : 'no result';
+  const esc = s => String(s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+
+  const render = function() {
+    if (ranked.length === 0 || (ranked.length === 1 && !has_score(ranked[0]))) {
+      div.style.display = 'none';
+      return;
+    }
+    div.style.display = '';
+    if (ranked.length === 1) {
+      div.innerHTML = `Score: <b>${fmt(ranked[0])}</b>`;
+      return;
+    }
+    let s = `<div class="mb-1"><b>${esc(title)}</b> <small class="text-muted">(click to reveal)</small></div><ul class="vyranks">`;
+    let rank = 0;
+    ranked.forEach((e, i) => {
+      if (i === 0 || e.score !== ranked[i-1].score) rank = i + 1;
+      const label = revealed.has(i) ? `${esc(e.alias ?? '?')} (${fmt(e)})` : '<span class="hid">&bull;&bull;&bull;&bull;&bull;&bull;</span>';
+      s += `<li data-i="${i}" class="${shown === e ? 'shown' : ''}">${rank}. ${label}</li>`;
+    });
+    div.innerHTML = s + '</ul>';
+  }
+
+  div.addEventListener('click', (ev) => {
+    const li = ev.target.closest('ul.vyranks li[data-i]');
+    if (!li) return;
+    const i = parseInt(li.dataset.i);
+    revealed.add(i);
+    if (shown !== ranked[i]) {
+      shown = ranked[i];
+      if (on_select) on_select(shown);
+    }
+    render();
+  });
+
+  return {
+    set(entries) {
+      ranked = [...(entries ?? [])].sort((a, b) => (has_score(b) ? b.score : -Infinity) - (has_score(a) ? a.score : -Infinity));
+      revealed.clear();
+      shown = (ranked.length === 1) ? ranked[0] : null;
+      render();
+      return shown;
+    },
+    selected: () => shown,
+  };
 }
 
 export function setup_init_vydisp(VYD, DF = null, opts = {}) {
